@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MG 새마을금고 상생 승부차기 챌린지</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mg: {
+                            blue: '#004B99',      // 새마을금고 시그니처 블루
+                            darkblue: '#003066',  // 다크 블루
+                            lightblue: '#0072CE', // 라이트 블루
+                            sky: '#E8F2FA',       // 연한 배경 블루
+                            gold: '#F59E0B'       // 골드 포인트
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+        }
+        canvas {
+            touch-action: none;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-pulse-ring {
+            animation: pulse-ring 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-slate-900 text-slate-100">
+
+    <!-- Navigation Header -->
+    <header class="bg-mg-darkblue text-white shadow-lg sticky top-0 z-30 border-b border-blue-900/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2">
+                <div class="bg-white text-mg-blue font-black text-lg px-2.5 py-1 rounded-lg flex items-center shadow-inner">
+                    <i class="fa-solid font-black text-mg-blue mr-1">MG</i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight tracking-tight">상생 승부차기 챌린지</h1>
+                    <p class="text-[11px] text-blue-200 hidden md:block">골을 성공시키고 대출 우대금리를 획득하세요!</p>
+                </div>
+            </div>
+
+            <!-- Inter-connected Site Links -->
+            <div class="flex items-center gap-1.5 sm:gap-2 text-xs">
+                <a href="index.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="메인 기획 보고서">
+                    <i class="fa-solid fa-file-invoice text-xs"></i>
+                    <span class="hidden sm:inline">메인 보고서</span>
+                </a>
+                <a href="cal" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="대출 상환 계산기">
+                    <i class="fa-solid fa-calculator text-xs"></i>
+                    <span class="hidden sm:inline">대출계산기</span>
+                </a>
+                <a href="game.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="소상공인 경영게임">
+                    <i class="fa-solid fa-store text-xs"></i>
+                    <span class="hidden sm:inline">경영게임</span>
+                </a>
+                <a href="soccer.html" class="inline-flex items-center space-x-1 bg-amber-500 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg shadow-md border border-amber-400">
+                    <i class="fa-solid fa-futbol text-xs"></i>
+                    <span>승부차기</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 flex flex-col items-center justify-center space-y-4">
+
+        <!-- Top Scoreboard -->
+        <div class="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-lg">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">남은 슛 기회</div>
+                    <div class="text-xl sm:text-2xl font-black text-white" id="kicksLeftDisplay">5 / 5</div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-6 text-center">
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">득점 (GOAL)</div>
+                    <div class="text-xl sm:text-2xl font-black text-emerald-400" id="goalsDisplay">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">선방 (SAVE)</div>
+                    <div class="text-xl sm:text-2xl font-black text-rose-400" id="savesDisplay">0</div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div class="text-right">
+                    <div class="text-xs text-slate-400 font-medium">획득 우대금리</div>
+                    <div class="text-xl sm:text-2xl font-black text-amber-400" id="discountDisplay">-0.00%p</div>
+                </div>
+                <button onclick="toggleAudio()" id="audioBtn" class="w-9 h-9 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center text-sm transition">
+                    <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Canvas Area -->
+        <div class="relative w-full max-w-3xl aspect-[16/10] bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
+            <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+            <!-- Overlay Goal Announcement -->
+            <div id="goalOverlay" class="absolute inset-0 bg-emerald-950/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-300 transform scale-75">
+                <span class="text-4xl sm:text-6xl font-black text-amber-300 tracking-wider drop-shadow-lg animate-bounce">GOAL!</span>
+                <span class="text-sm sm:text-base text-emerald-200 font-bold mt-2 bg-emerald-900/80 px-4 py-1.5 rounded-full border border-emerald-400/30">
+                    우대금리 -0.10%p 획득!
+                </span>
+            </div>
+
+            <!-- Overlay Miss Announcement -->
+            <div id="missOverlay" class="absolute inset-0 bg-rose-950/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-300 transform scale-75">
+                <span class="text-4xl sm:text-6xl font-black text-rose-400 tracking-wider drop-shadow-lg">SAVED!</span>
+                <span class="text-sm sm:text-base text-rose-200 font-bold mt-2 bg-rose-900/80 px-4 py-1.5 rounded-full border border-rose-400/30">
+                    골키퍼의 완벽한 선방!
+                </span>
+            </div>
+        </div>
+
+        <!-- Controls Area -->
+        <div class="w-full max-w-3xl bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <!-- Target Selector Buttons (9 Positions Grid) -->
+                <div class="w-full sm:w-auto space-y-1">
+                    <div class="text-xs text-slate-300 font-bold flex items-center space-x-1">
+                        <i class="fa-solid fa-crosshairs text-mg-gold"></i>
+                        <span>1. 슈팅 조준 방향 선택</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 w-full sm:w-56">
+                        <button onclick="setTarget('TL')" id="target-TL" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">좌상단</button>
+                        <button onclick="setTarget('TC')" id="target-TC" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">중상단</button>
+                        <button onclick="setTarget('TR')" id="target-TR" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">우상단</button>
+                        <button onclick="setTarget('ML')" id="target-ML" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">좌측</button>
+                        <button onclick="setTarget('MC')" id="target-MC" class="target-btn py-2 text-xs font-bold rounded-lg border border-mg-blue bg-mg-blue text-white transition">중앙</button>
+                        <button onclick="setTarget('MR')" id="target-MR" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">우측</button>
+                        <button onclick="setTarget('BL')" id="target-BL" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">좌하단</button>
+                        <button onclick="setTarget('BC')" id="target-BC" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">중하단</button>
+                        <button onclick="setTarget('BR')" id="target-BR" class="target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition">우하단</button>
+                    </div>
+                </div>
+
+                <!-- Power Gauge & Shoot Button -->
+                <div class="w-full sm:flex-1 space-y-2 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                            <span>2. 슛 파워 타이밍</span>
+                            <span id="powerValueText" class="text-amber-400">50%</span>
+                        </div>
+                        <!-- Power Bar Indicator -->
+                        <div class="w-full h-5 bg-slate-950 rounded-lg overflow-hidden p-0.5 border border-slate-700 relative">
+                            <div id="powerGauge" class="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 rounded transition-all duration-75" style="width: 50%;"></div>
+                            <div class="absolute inset-y-0 left-[70%] w-0.5 bg-white/80" title="최적의 게이지"></div>
+                        </div>
+                    </div>
+
+                    <button id="kickBtn" onclick="shootBall()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-base rounded-xl shadow-lg transition duration-150 transform active:scale-95 flex items-center justify-center space-x-2 border border-emerald-300">
+                        <i class="fa-solid fa-futbol text-lg"></i>
+                        <span>슈팅 실행 (KICK!)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Game Over Result Modal -->
+    <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 rounded-3xl max-w-md w-full mx-4 p-6 shadow-2xl border border-slate-700 text-center space-y-5">
+            <div class="w-16 h-16 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-2xl mx-auto flex items-center justify-center text-3xl font-black shadow-inner">
+                <i class="fa-solid fa-award"></i>
+            </div>
+
+            <div>
+                <span class="text-xs font-bold text-amber-400 bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">챌린지 종료</span>
+                <h3 class="text-2xl font-black text-white mt-2" id="resultTitle">승부차기 경기 완료!</h3>
+                <p class="text-xs text-slate-400 mt-1" id="resultSubtitle">고객님의 뛰어난 슛 감각으로 금리 우대 혜택을 획득하셨습니다.</p>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700/80 space-y-2">
+                <div class="flex justify-between text-xs text-slate-300">
+                    <span>최종 골 성공</span>
+                    <strong class="text-emerald-400 text-sm" id="finalGoalsText">0 / 5 골</strong>
+                </div>
+                <div class="flex justify-between text-xs text-slate-300 border-t border-slate-700/60 pt-2">
+                    <span>획득한 대출 우대금리</span>
+                    <strong class="text-amber-400 text-base font-black" id="finalDiscountText">-0.00%p</strong>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 pt-2">
+                <button onclick="goToCalculatorWithDiscount()" class="w-full py-3 bg-mg-blue hover:bg-mg-lightblue text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm border border-blue-400/30">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>획득 금리 적용하여 대출 계산기 가기</span>
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="resetMatch()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> 다시 도전
+                    </button>
+                    <a href="game.html" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700 inline-flex items-center justify-center">
+                        <i class="fa-solid fa-store mr-1"></i> 경영 게임 이동
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State Variables
+        let canvas, ctx;
+        let selectedTarget = 'MC'; // ML, MC, MR, TL, TC, TR, BL, BC, BR
+        let powerGaugeValue = 50;
+        let powerDirection = 2; // Direction of gauge oscillation
+        let powerInterval = null;
+        let isShooting = false;
+
+        let totalKicks = 5;
+        let currentKick = 0;
+        let goalsCount = 0;
+        let savesCount = 0;
+        let discountRate = 0.0;
+
+        let audioEnabled = true;
+        let audioCtx = null;
+
+        // Coordinates & Animation Entities
+        let ball = { x: 0, y: 0, radius: 16, startX: 0, startY: 0, targetX: 0, targetY: 0, progress: 0 };
+        let keeper = { x: 0, y: 0, width: 48, height: 70, targetX: 0, targetY: 0, animProgress: 0 };
+        let targetCoords = {};
+
+        window.onload = function() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            startPowerGauge();
+            resetPositions();
+            requestAnimationFrame(gameLoop);
+        };
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            updateTargetCoordinates();
+            if (!isShooting) {
+                resetPositions();
+            }
+        }
+
+        function updateTargetCoordinates() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            const goalLeft = w * 0.22;
+            const goalRight = w * 0.78;
+            const goalTop = h * 0.22;
+            const goalBottom = h * 0.58;
+            const goalCenterX = w * 0.5;
+            const goalCenterY = (goalTop + goalBottom) / 2;
+
+            targetCoords = {
+                'TL': { x: goalLeft + 25, y: goalTop + 20 },
+                'TC': { x: goalCenterX, y: goalTop + 20 },
+                'TR': { x: goalRight - 25, y: goalTop + 20 },
+                'ML': { x: goalLeft + 25, y: goalCenterY },
+                'MC': { x: goalCenterX, y: goalCenterY },
+                'MR': { x: goalRight - 25, y: goalCenterY },
+                'BL': { x: goalLeft + 25, y: goalBottom - 20 },
+                'BC': { x: goalCenterX, y: goalBottom - 20 },
+                'BR': { x: goalRight - 25, y: goalBottom - 20 }
+            };
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            icon.className = audioEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            if (type === 'kick') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'goal') {
+                // Cheering chord
+                [261.63, 329.63, 392.00, 523.25].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.05);
+                    osc.stop(now + 0.6);
+                });
+            } else if (type === 'save') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 0.25);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        }
+
+        function setTarget(pos) {
+            if (isShooting) return;
+            selectedTarget = pos;
+            document.querySelectorAll('.target-btn').forEach(btn => {
+                btn.className = "target-btn py-2 text-xs font-bold rounded-lg border border-slate-600 bg-slate-700 hover:bg-mg-blue transition";
+            });
+            const activeBtn = document.getElementById(`target-${pos}`);
+            if (activeBtn) {
+                activeBtn.className = "target-btn py-2 text-xs font-bold rounded-lg border border-mg-blue bg-mg-blue text-white shadow transition";
+            }
+        }
+
+        function startPowerGauge() {
+            if (powerInterval) clearInterval(powerInterval);
+            powerInterval = setInterval(() => {
+                if (isShooting) return;
+                powerGaugeValue += powerDirection;
+                if (powerGaugeValue >= 100) {
+                    powerGaugeValue = 100;
+                    powerDirection = -3;
+                } else if (powerGaugeValue <= 0) {
+                    powerGaugeValue = 0;
+                    powerDirection = 3;
+                }
+                document.getElementById('powerGauge').style.width = `${powerGaugeValue}%`;
+                document.getElementById('powerValueText').innerText = `${powerGaugeValue}%`;
+            }, 25);
+        }
+
+        function resetPositions() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ball.x = w * 0.5;
+            ball.y = h * 0.82;
+            ball.radius = 16;
+            ball.progress = 0;
+
+            keeper.x = w * 0.5;
+            keeper.y = h * 0.48;
+            keeper.targetX = w * 0.5;
+            keeper.targetY = h * 0.48;
+            keeper.animProgress = 0;
+        }
+
+        function shootBall() {
+            if (isShooting || currentKick >= totalKicks) return;
+
+            isShooting = true;
+            currentKick++;
+            document.getElementById('kickBtn').disabled = true;
+            document.getElementById('kickBtn').classList.add('opacity-50');
+
+            playSound('kick');
+
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            const t = targetCoords[selectedTarget];
+            
+            // Add power deviation factor
+            let deviation = (Math.abs(powerGaugeValue - 70) / 100) * 40;
+            ball.startX = ball.x;
+            ball.startY = ball.y;
+            ball.targetX = t.x + (Math.random() - 0.5) * deviation;
+            ball.targetY = t.y + (Math.random() - 0.5) * deviation;
+
+            // AI Goalkeeper dive decision
+            const posKeys = Object.keys(targetCoords);
+            // 45% chance keeper guesses correctly, 55% random/wrong
+            let keeperTargetKey = posKeys[Math.floor(Math.random() * posKeys.length)];
+            if (Math.random() < 0.45) {
+                keeperTargetKey = selectedTarget;
+            }
+
+            const kt = targetCoords[keeperTargetKey];
+            keeper.targetX = kt.x;
+            keeper.targetY = kt.y;
+        }
+
+        function gameLoop() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Draw Field & Stadium Background
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, h);
+            bgGradient.addColorStop(0, '#0f172a');
+            bgGradient.addColorStop(0.3, '#1e293b');
+            bgGradient.addColorStop(0.35, '#15803d');
+            bgGradient.addColorStop(1, '#166534');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, w, h);
+
+            // Grass stripes
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
+                ctx.fillRect(0, h * 0.35 + (i * h * 0.11), w, h * 0.11);
+            }
+
+            // 2. Draw Goal Post & Net
+            const gL = w * 0.22;
+            const gR = w * 0.78;
+            const gT = h * 0.22;
+            const gB = h * 0.58;
+
+            // Net Grid Lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1;
+            for (let x = gL; x <= gR; x += 14) {
+                ctx.beginPath();
+                ctx.moveTo(x, gT);
+                ctx.lineTo(x, gB);
+                ctx.stroke();
+            }
+            for (let y = gT; y <= gB; y += 12) {
+                ctx.beginPath();
+                ctx.moveTo(gL, y);
+                ctx.lineTo(gR, y);
+                ctx.stroke();
+            }
+
+            // Goal Posts (White frame)
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(gL, gT, gR - gL, gB - gT);
+
+            // Penalty Spot
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(w * 0.5, h * 0.82, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. Target Reticle Indicator
+            if (targetCoords[selectedTarget] && !isShooting) {
+                const target = targetCoords[selectedTarget];
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 16, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 4. Update and Draw Goalkeeper
+            if (isShooting && keeper.animProgress < 1) {
+                keeper.animProgress += 0.05;
+                keeper.x += (keeper.targetX - keeper.x) * 0.12;
+                keeper.y += (keeper.targetY - keeper.y) * 0.12;
+            }
+
+            // Goalkeeper Body Drawing
+            ctx.save();
+            ctx.translate(keeper.x, keeper.y);
+            
+            // Keeper Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 30, 24, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Jersey Body (Gold / Yellow MG Jersey)
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.roundRect(-18, -25, 36, 38, 8);
+            ctx.fill();
+
+            // Head
+            ctx.fillStyle = '#fbcfe8';
+            ctx.beginPath();
+            ctx.arc(0, -34, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Gloves / Arms
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-22, -10, 7, 0, Math.PI * 2);
+            ctx.arc(22, -10, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // MG Chest Logo
+            ctx.fillStyle = '#004B99';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('MG', 0, -5);
+
+            ctx.restore();
+
+            // 5. Update & Draw Ball Trajectory
+            if (isShooting) {
+                ball.progress += 0.04;
+                if (ball.progress > 1) ball.progress = 1;
+
+                ball.x = ball.startX + (ball.targetX - ball.startX) * ball.progress;
+                ball.y = ball.startY + (ball.targetY - ball.startY) * ball.progress;
+                ball.radius = 16 - (ball.progress * 7); // Ball shrinks as it moves away
+
+                if (ball.progress === 1) {
+                    evaluateShot();
+                }
+            }
+
+            // Ball Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(ball.x, ball.y + ball.radius * 0.8, ball.radius, ball.radius * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Soccer Ball
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, Math.max(4, ball.radius), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Ball Pattern Details
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, Math.max(2, ball.radius * 0.35), 0, Math.PI * 2);
+            ctx.fill();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function evaluateShot() {
+            const distToKeeper = Math.hypot(ball.x - keeper.x, ball.y - keeper.y);
+            const isSave = distToKeeper < 35;
+
+            if (isSave) {
+                savesCount++;
+                playSound('save');
+                showOverlay('missOverlay');
+            } else {
+                goalsCount++;
+                discountRate = Math.min(0.5, goalsCount * 0.1);
+                playSound('goal');
+                showOverlay('goalOverlay');
+            }
+
+            updateScoreboard();
+
+            setTimeout(() => {
+                hideOverlays();
+                if (currentKick >= totalKicks) {
+                    showFinalModal();
+                } else {
+                    isShooting = false;
+                    resetPositions();
+                    document.getElementById('kickBtn').disabled = false;
+                    document.getElementById('kickBtn').classList.remove('opacity-50');
+                }
+            }, 1600);
+        }
+
+        function showOverlay(overlayId) {
+            const el = document.getElementById(overlayId);
+            el.classList.remove('opacity-0', 'pointer-events-none', 'scale-75');
+            el.classList.add('opacity-100', 'scale-100');
+        }
+
+        function hideOverlays() {
+            ['goalOverlay', 'missOverlay'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('opacity-100', 'scale-100');
+                el.classList.add('opacity-0', 'pointer-events-none', 'scale-75');
+            });
+        }
+
+        function updateScoreboard() {
+            document.getElementById('kicksLeftDisplay').innerText = `${totalKicks - currentKick} / ${totalKicks}`;
+            document.getElementById('goalsDisplay').innerText = goalsCount;
+            document.getElementById('savesDisplay').innerText = savesCount;
+            document.getElementById('discountDisplay').innerText = `-${discountRate.toFixed(2)}%p`;
+        }
+
+        function showFinalModal() {
+            document.getElementById('finalGoalsText').innerText = `${goalsCount} / ${totalKicks} 골`;
+            document.getElementById('finalDiscountText').innerText = `-${discountRate.toFixed(2)}%p`;
+
+            const modal = document.getElementById('resultModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function resetMatch() {
+            currentKick = 0;
+            goalsCount = 0;
+            savesCount = 0;
+            discountRate = 0.0;
+            isShooting = false;
+
+            updateScoreboard();
+            resetPositions();
+
+            document.getElementById('kickBtn').disabled = false;
+            document.getElementById('kickBtn').classList.remove('opacity-50');
+
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function goToCalculatorWithDiscount() {
+            // Navigate to loan calculator page passing discount rate
+            window.location.href = `cal?discount=${discountRate.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
