@@ -58,21 +58,21 @@
                 </div>
             </div>
 
-            <!-- Inter-connected Site Links (game.html removed, basketball added) -->
+            <!-- Inter-connected Site Links -->
             <div class="flex items-center gap-1.5 sm:gap-2 text-xs">
-                <a href="index.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="메인 기획 보고서">
+                <a href="./index.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="메인 기획 보고서">
                     <i class="fa-solid fa-file-invoice text-xs"></i>
                     <span class="hidden sm:inline">메인 보고서</span>
                 </a>
-                <a href="cal" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="대출 상환 계산기">
+                <a href="./cal.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="대출 상환 계산기">
                     <i class="fa-solid fa-calculator text-xs"></i>
                     <span class="hidden sm:inline">대출계산기</span>
                 </a>
-                <a href="soccer.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="승부차기 미니게임">
+                <a href="./soccer.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="승부차기 미니게임">
                     <i class="fa-solid fa-futbol text-xs"></i>
                     <span class="hidden sm:inline">승부차기</span>
                 </a>
-                <a href="basketball.html" class="inline-flex items-center space-x-1 bg-amber-500 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg shadow-md border border-amber-400">
+                <a href="./basketball.html" class="inline-flex items-center space-x-1 bg-amber-500 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg shadow-md border border-amber-400">
                     <i class="fa-solid fa-basketball text-xs"></i>
                     <span>농구 챌린지</span>
                 </a>
@@ -212,7 +212,7 @@
                     <button onclick="resetMatch()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700">
                         <i class="fa-solid fa-rotate-left mr-1"></i> 다시 도전
                     </button>
-                    <a href="soccer.html" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700 inline-flex items-center justify-center">
+                    <a href="./soccer.html" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700 inline-flex items-center justify-center">
                         <i class="fa-solid fa-futbol mr-1"></i> 축구 미니게임
                     </a>
                 </div>
@@ -589,7 +589,7 @@
         }
 
         function goToCalculatorWithDiscount() {
-            window.location.href = `cal?discount=${discountRate.toFixed(2)}`;
+            window.location.href = `./cal.html?discount=${discountRate.toFixed(2)}`;
         }
     </script>
 </body>
