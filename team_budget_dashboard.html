@@ -1,540 +1,2259 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>팀 예산 현황 및 취합 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
-        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
-        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; }
-        
-        /* 로딩 오버레이 스타일 */
-        #loadingOverlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border-left-color: #2563eb;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>팀 예산 관리 시스템</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+
+    body {
+      font-family: Pretendard, system-ui, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e6ebf2;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(30, 64, 175, .06);
+    }
+
+    .field {
+      width: 100%;
+      border: 1px solid #d8e0eb;
+      border-radius: 10px;
+      padding: .7rem .8rem;
+      outline: none;
+      background: white;
+    }
+
+    .field:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+    }
+
+    .btn {
+      border-radius: 10px;
+      padding: .68rem 1rem;
+      font-weight: 700;
+      transition: .15s;
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #1d4ed8;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #1e40af;
+    }
+
+    .tab-active {
+      background: #1d4ed8;
+      color: white;
+    }
+
+    .modal {
+      background: rgba(15, 23, 42, .55);
+      backdrop-filter: blur(2px);
+    }
+
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 4px solid #dbeafe;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        background: white;
+      }
+
+      .card {
+        box-shadow: none;
+      }
+    }
+  </style>
 </head>
-<body class="p-4 md:p-8 relative">
 
-    <!-- 로딩 오버레이 -->
-    <div id="loadingOverlay">
-        <div class="spinner mb-4"></div>
-        <p class="text-gray-700 font-semibold" id="loadingText">데이터를 불러오는 중입니다...</p>
+<body>
+  <section id="loginView" class="min-h-screen grid lg:grid-cols-2">
+    <div class="hidden lg:flex bg-gradient-to-br from-blue-950 via-blue-800 to-indigo-600 text-white p-16 flex-col justify-between">
+      <div class="text-xl font-extrabold">TEAM BUDGET</div>
+
+      <div>
+        <p class="text-blue-200 font-semibold">한눈에 보고, 안전하게 관리하는</p>
+        <h1 class="text-5xl font-extrabold leading-tight mt-3">
+          팀 예산<br>통합 관리
+        </h1>
+        <p class="text-blue-100 mt-6 max-w-md leading-7">
+          월별 지출 입력부터 항목별 분석, 보고용 자료 취합까지 한 곳에서 관리하세요.
+        </p>
+      </div>
+
+      <p class="text-sm text-blue-200">
+        관리자 승인 사용자만 접근할 수 있습니다.
+      </p>
     </div>
 
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-gray-800">📊 팀 예산 관리 시스템</h1>
-            <p class="text-gray-500 mt-2">부장님 보고용 월별 예산 취합 및 대시보드</p>
-        </header>
-
-        <!-- Navigation Tabs -->
-        <div class="flex border-b border-gray-200 mb-8">
-            <button onclick="switchTab('input')" id="tab-input" class="px-6 py-2 font-semibold transition-colors tab-active">데이터 입력</button>
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-6 py-2 font-semibold text-gray-500 hover:text-blue-600 transition-colors">전체 대시보드</button>
+    <div class="flex items-center justify-center p-6">
+      <form id="loginForm" class="card w-full max-w-md p-8 space-y-5">
+        <div>
+          <p class="text-sm font-bold text-blue-600">WELCOME BACK</p>
+          <h2 class="text-3xl font-extrabold mt-1">로그인</h2>
+          <p class="text-gray-500 mt-2">등록된 계정으로 접속해 주세요.</p>
         </div>
 
-        <!-- Section 1: Input Form -->
-        <div id="section-input" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="md:col-span-1 card p-6">
-                <h2 class="text-xl font-bold mb-4 flex items-center">
-                    <span class="mr-2">📝</span> 내역 입력
-                </h2>
-                <form id="budgetForm" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">팀원 선택</label>
-                        <select id="member" class="mt-1 block w-full rounded-md border-gray-300 border p-2 focus:ring-blue-500 focus:border-blue-500" required>
-                            <option value="">팀원을 선택하세요</option>
-                            <option value="부장님">부장님</option>
-                            <option value="팀원1">팀원1</option>
-                            <option value="팀원2">팀원2</option>
-                            <option value="팀원3">팀원3</option>
-                            <option value="팀원4">팀원4</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">해당 월</label>
-                        <input type="month" id="month" class="mt-1 block w-full rounded-md border-gray-300 border p-2 focus:ring-blue-500 focus:border-blue-500" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">예산 항목</label>
-                        <select id="category" class="mt-1 block w-full rounded-md border-gray-300 border p-2 focus:ring-blue-500 focus:border-blue-500" required>
-                            <option value="수선유지비">수선유지비</option>
-                            <option value="비품">비품</option>
-                            <option value="개량공사">개량공사</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">사용 금액 (원)</label>
-                        <input type="number" id="amount" placeholder="숫자만 입력" class="mt-1 block w-full rounded-md border-gray-300 border p-2 focus:ring-blue-500 focus:border-blue-500" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                        기록 저장하기
-                    </button>
-                </form>
-            </div>
+        <label class="block">
+          <span class="text-sm font-semibold">아이디</span>
+          <input
+            id="loginId"
+            class="field mt-2"
+            autocomplete="username"
+            maxlength="40"
+            required
+          >
+        </label>
 
-            <div class="md:col-span-2 card p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">📂 최근 입력 내역</h2>
-                    <div class="space-x-2">
-                        <button onclick="fetchData()" class="text-xs text-blue-500 hover:underline">새로고침</button>
-                        <button onclick="clearData()" class="text-xs text-red-500 hover:underline">모든 데이터 초기화</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">팀원</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">항목</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">금액</th>
-                                <th class="px-4 py-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyBody" class="bg-white divide-y divide-gray-200">
-                            <!-- JS dynamic content -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <label class="block">
+          <span class="text-sm font-semibold">비밀번호</span>
+
+          <div class="relative mt-2">
+            <input
+              id="loginPassword"
+              type="password"
+              class="field pr-16"
+              autocomplete="current-password"
+              required
+            >
+
+            <button
+              id="passwordToggle"
+              type="button"
+              class="absolute right-3 top-3 text-sm text-gray-500"
+            >
+              보기
+            </button>
+          </div>
+        </label>
+
+        <p
+          id="loginError"
+          class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        ></p>
+
+        <button class="btn btn-primary w-full" type="submit">
+          로그인
+        </button>
+
+        <div
+          id="firstRunPanel"
+          class="hidden rounded-xl border border-blue-200 bg-blue-50 p-4"
+        >
+          <p class="font-bold text-blue-900">최초 관리자 설정</p>
+          <p class="text-sm text-blue-700 mt-1">
+            이 브라우저에서 사용할 관리자 계정을 먼저 만드세요.
+          </p>
+
+          <input
+            id="setupName"
+            class="field mt-3"
+            placeholder="관리자 이름"
+            maxlength="30"
+          >
+
+          <input
+            id="setupPassword"
+            type="password"
+            class="field mt-2"
+            placeholder="관리자 비밀번호"
+          >
+
+          <button
+            id="setupButton"
+            type="button"
+            class="btn btn-primary w-full mt-2"
+          >
+            관리자 계정 만들기
+          </button>
         </div>
-
-        <!-- Section 2: Dashboard (Hidden by default) -->
-        <div id="section-dashboard" class="hidden space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="card p-6 bg-blue-50">
-                    <p class="text-sm text-blue-600 font-semibold">전체 누적 사용액</p>
-                    <h3 id="stat-total" class="text-3xl font-bold text-blue-900 mt-1">0원</h3>
-                </div>
-                <div class="card p-6 bg-green-50">
-                    <p class="text-sm text-green-600 font-semibold">이번 달 최대 사용 항목</p>
-                    <h3 id="stat-top-category" class="text-xl font-bold text-green-900 mt-1">-</h3>
-                </div>
-                <div class="card p-6 bg-purple-50">
-                    <p class="text-sm text-purple-600 font-semibold">데이터 건수</p>
-                    <h3 id="stat-count" class="text-3xl font-bold text-purple-900 mt-1">0건</h3>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="card p-6">
-                    <h2 class="text-lg font-bold mb-4">🏠 항목별 예산 분포</h2>
-                    <canvas id="categoryChart"></canvas>
-                </div>
-                <div class="card p-6">
-                    <h2 class="text-lg font-bold mb-4">👥 팀원별 누적 사용액</h2>
-                    <canvas id="memberChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card p-6 overflow-x-auto">
-                <h2 class="text-lg font-bold mb-4">📅 월별/항목별 요약 테이블 (취합본)</h2>
-                <table class="min-w-full border-collapse border border-gray-200">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="border border-gray-200 px-4 py-2">연월</th>
-                            <th class="border border-gray-200 px-4 py-2 text-blue-600">수선유지비</th>
-                            <th class="border border-gray-200 px-4 py-2 text-green-600">비품</th>
-                            <th class="border border-gray-200 px-4 py-2 text-purple-600">개량공사</th>
-                            <th class="border border-gray-200 px-4 py-2 bg-gray-200">합계</th>
-                        </tr>
-                    </thead>
-                    <tbody id="summaryTableBody" class="text-center">
-                        <!-- JS dynamic content -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      </form>
     </div>
+  </section>
 
-    <!-- Alert Modal Replacement -->
-    <div id="customAlert" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
-            <h3 class="text-lg font-bold mb-2" id="alertTitle">알림</h3>
-            <p id="alertMsg" class="text-gray-600 mb-4"></p>
-            <button onclick="closeAlert()" class="w-full bg-blue-600 text-white py-2 rounded font-bold">확인</button>
+  <div id="appView" class="hidden min-h-screen">
+    <header class="no-print bg-slate-950 text-white sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-extrabold text-lg">팀 예산 관리</h1>
+          <p class="text-xs text-slate-400">월별 예산 취합 및 대시보드</p>
         </div>
+
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <p id="userName" class="text-sm font-bold"></p>
+            <p id="userRole" class="text-xs text-slate-400"></p>
+          </div>
+
+          <button
+            type="button"
+            onclick="logoutApp()"
+            class="border border-slate-700 rounded-lg px-3 py-2 text-sm hover:bg-slate-800"
+          >
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+      <nav class="no-print flex gap-2 mb-6 overflow-x-auto">
+        <button data-tab="input" class="tab btn tab-active">
+          내역 관리
+        </button>
+
+        <button data-tab="dashboard" class="tab btn bg-white border">
+          대시보드
+        </button>
+
+        <button
+          data-tab="users"
+          id="usersTabButton"
+          class="tab btn bg-white border hidden"
+        >
+          팀원 관리
+        </button>
+      </nav>
+
+      <section id="tab-input" class="tab-panel grid lg:grid-cols-3 gap-6">
+        <form id="entryForm" class="card p-6 space-y-4 h-fit">
+          <div>
+            <p class="text-sm text-blue-600 font-bold">NEW ENTRY</p>
+            <h2 class="text-xl font-extrabold">예산 내역 입력</h2>
+          </div>
+
+          <label class="block">
+            <span class="text-sm font-semibold">팀원</span>
+            <select id="memberId" class="field mt-1" required></select>
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">해당 월</span>
+            <input id="month" type="month" class="field mt-1" required>
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">예산 항목</span>
+            <select id="category" class="field mt-1" required></select>
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">사용 금액</span>
+            <input
+              id="amount"
+              type="number"
+              min="1"
+              max="1000000000000"
+              step="1"
+              class="field mt-1"
+              placeholder="원 단위"
+              required
+            >
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">
+              메모
+              <span class="text-gray-400 font-normal">(선택)</span>
+            </span>
+
+            <textarea
+              id="memo"
+              class="field mt-1 resize-none"
+              maxlength="200"
+              rows="3"
+              placeholder="사용 목적을 간단히 입력"
+            ></textarea>
+          </label>
+
+          <button id="saveButton" class="btn btn-primary w-full" type="submit">
+            기록 저장
+          </button>
+        </form>
+
+        <div class="lg:col-span-2 card p-5 md:p-6 min-w-0">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-xl font-extrabold">최근 입력 내역</h2>
+              <p id="resultCount" class="text-sm text-gray-500"></p>
+            </div>
+
+            <div class="flex gap-2">
+              <button
+                type="button"
+                onclick="refreshData()"
+                class="btn border bg-white text-sm"
+              >
+                새로고침
+              </button>
+
+              <button
+                id="clearAllButton"
+                type="button"
+                onclick="confirmClearAll()"
+                class="btn border border-red-200 text-red-600 text-sm hidden"
+              >
+                전체 삭제
+              </button>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-2 mb-4">
+            <input
+              id="searchInput"
+              class="field"
+              placeholder="팀원·메모 검색"
+            >
+
+            <input id="filterMonth" type="month" class="field">
+
+            <select id="filterCategory" class="field">
+              <option value="">전체 항목</option>
+            </select>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="p-3 text-left">연월</th>
+                  <th class="p-3 text-left">팀원</th>
+                  <th class="p-3 text-left">항목</th>
+                  <th class="p-3 text-left">메모</th>
+                  <th class="p-3 text-right">금액</th>
+                  <th class="p-3"></th>
+                </tr>
+              </thead>
+
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-dashboard" class="tab-panel hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
+          <div>
+            <p class="text-sm text-blue-600 font-bold">OVERVIEW</p>
+            <h2 class="text-2xl font-extrabold">예산 대시보드</h2>
+          </div>
+
+          <div class="no-print flex flex-wrap gap-2">
+            <button
+              type="button"
+              onclick="exportCsv()"
+              class="btn border bg-white"
+            >
+              CSV 내보내기
+            </button>
+
+            <button
+              id="backupButton"
+              type="button"
+              onclick="exportBackup()"
+              class="btn border bg-white hidden"
+            >
+              백업 저장
+            </button>
+
+            <label
+              id="restoreLabel"
+              class="btn border bg-white hidden cursor-pointer"
+            >
+              백업 복원
+              <input
+                id="restoreInput"
+                type="file"
+                accept="application/json"
+                class="hidden"
+              >
+            </label>
+
+            <button
+              type="button"
+              onclick="window.print()"
+              class="btn border bg-white"
+            >
+              인쇄
+            </button>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-4">
+          <article class="card p-5">
+            <p class="text-sm text-gray-500">조회 합계</p>
+            <p id="statTotal" class="text-3xl font-extrabold mt-2">0원</p>
+          </article>
+
+          <article class="card p-5">
+            <p class="text-sm text-gray-500">최대 지출 항목</p>
+            <p id="statTop" class="text-xl font-extrabold mt-2">-</p>
+          </article>
+
+          <article class="card p-5">
+            <p class="text-sm text-gray-500">내역 건수</p>
+            <p id="statCount" class="text-3xl font-extrabold mt-2">0건</p>
+          </article>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+          <article class="card p-6">
+            <h3 class="font-extrabold mb-4">항목별 비중</h3>
+            <div class="h-72">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </article>
+
+          <article class="card p-6">
+            <h3 class="font-extrabold mb-4">월별 사용 추이</h3>
+            <div class="h-72">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </article>
+        </div>
+
+        <article class="card p-6 overflow-x-auto">
+          <h3 class="font-extrabold mb-4">월별·항목별 취합</h3>
+
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="p-3 text-left">연월</th>
+                <th class="p-3 text-right">수선유지비</th>
+                <th class="p-3 text-right">비품</th>
+                <th class="p-3 text-right">개량공사</th>
+                <th class="p-3 text-right">합계</th>
+              </tr>
+            </thead>
+
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </article>
+      </section>
+
+      <section id="tab-users" class="tab-panel hidden grid lg:grid-cols-3 gap-6">
+        <form id="userForm" class="card p-6 space-y-4 h-fit">
+          <h2 class="text-xl font-extrabold">팀원 추가</h2>
+
+          <label class="block">
+            <span class="text-sm font-semibold">아이디</span>
+            <input
+              id="newUserId"
+              class="field mt-1"
+              pattern="[a-z0-9._-]{3,40}"
+              required
+            >
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">이름</span>
+            <input
+              id="newUserName"
+              class="field mt-1"
+              maxlength="30"
+              required
+            >
+          </label>
+
+          <label class="block">
+            <span class="text-sm font-semibold">권한</span>
+            <select id="newUserRole" class="field mt-1">
+              <option value="user">일반 사용자</option>
+              <option value="admin">관리자</option>
+            </select>
+          </label>
+
+          <button class="btn btn-primary w-full" type="submit">
+            임시 비밀번호 발급
+          </button>
+        </form>
+
+        <div class="lg:col-span-2 card p-6">
+          <h2 class="text-xl font-extrabold mb-4">팀원 목록</h2>
+          <div id="userList" class="space-y-3"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div
+    id="loading"
+    class="fixed inset-0 modal hidden items-center justify-center z-50"
+  >
+    <div class="card p-6 flex items-center gap-4">
+      <div class="spinner"></div>
+      <p id="loadingText" class="font-bold">처리 중...</p>
     </div>
+  </div>
 
-    <script>
-        // ==========================================
-        // ⚠️ 주의: 아래 SCRIPT_URL을 본인의 앱스 스크립트 웹앱 URL로 변경해야 합니다!
-        // ==========================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlymWhexxzsb_OjIxWfvulrETem7Ae6HTU6rNydkVzY4x0RrA49ffIlWHR5_MHDxilDQ/exec'; 
-        
-        // State Management
-        let budgetData = []; // 초기값은 빈 배열, DB에서 로드
-        let categoryChart = null;
-        let memberChart = null;
+  <div
+    id="dialog"
+    class="fixed inset-0 modal hidden items-center justify-center z-50 p-4"
+  >
+    <div class="card p-6 max-w-md w-full">
+      <h3 id="dialogTitle" class="text-xl font-extrabold"></h3>
+      <p
+        id="dialogMessage"
+        class="text-gray-600 whitespace-pre-line mt-3"
+      ></p>
 
-        // UI Helpers
-        function showLoading(text = '처리 중...') {
-            document.getElementById('loadingText').innerText = text;
-            document.getElementById('loadingOverlay').style.display = 'flex';
+      <button
+        type="button"
+        onclick="closeDialog()"
+        class="btn btn-primary w-full mt-5"
+      >
+        확인
+      </button>
+    </div>
+  </div>
+
+  <div
+    id="passwordModal"
+    class="fixed inset-0 modal hidden items-center justify-center z-50 p-4"
+  >
+    <form id="passwordForm" class="card p-6 max-w-md w-full space-y-4">
+      <div>
+        <h3 class="text-xl font-extrabold">비밀번호 변경</h3>
+        <p class="text-sm text-gray-500 mt-1">
+          최초 로그인 시 새 비밀번호 설정이 필요합니다.
+        </p>
+      </div>
+
+      <input
+        id="currentPassword"
+        type="password"
+        class="field"
+        placeholder="현재 비밀번호"
+        required
+      >
+
+      <input
+        id="newPassword"
+        type="password"
+        class="field"
+        placeholder="새 비밀번호"
+        required
+      >
+
+      <p class="text-xs text-gray-500">
+        10자 이상, 대·소문자, 숫자, 특수문자를 모두 포함하세요.
+      </p>
+
+      <button class="btn btn-primary w-full" type="submit">
+        비밀번호 변경
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const STORAGE = {
+      users: "tb_users_v1",
+      entries: "tb_entries_v1",
+      audit: "tb_audit_v1",
+      session: "tb_session_v1",
+      loginLock: "tb_login_lock_v1"
+    };
+
+    const CATEGORIES = ["수선유지비", "비품", "개량공사"];
+
+    const state = {
+      token: sessionStorage.getItem("budgetToken") || "",
+      user: null,
+      entries: [],
+      members: [],
+      users: [],
+      categories: [],
+      charts: []
+    };
+
+    const $ = id => document.getElementById(id);
+
+    const money = value =>
+      Number(value || 0).toLocaleString("ko-KR") + "원";
+
+    const readStore = (key, fallback = []) => {
+      try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    const writeStore = (key, value) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    };
+
+    const randomId = () => {
+      if (crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+
+      return (
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2)
+      );
+    };
+
+    const normalizeId = value =>
+      String(value || "").trim().toLowerCase();
+
+    function validatePassword(password) {
+      password = String(password || "");
+
+      const valid =
+        password.length >= 10 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /\d/.test(password) &&
+        /[^A-Za-z0-9]/.test(password);
+
+      if (!valid) {
+        throw new Error(
+          "비밀번호는 10자 이상이며 대문자·소문자·숫자·특수문자를 포함해야 합니다."
+        );
+      }
+    }
+
+    async function hashPassword(password, salt) {
+      const bytes = new TextEncoder().encode(`${salt}:${password}`);
+      const hash = await crypto.subtle.digest("SHA-256", bytes);
+
+      return Array.from(
+        new Uint8Array(hash),
+        byte => byte.toString(16).padStart(2, "0")
+      ).join("");
+    }
+
+    function publicUser(user) {
+      return {
+        userId: user.userId,
+        name: user.name,
+        role: user.role,
+        active: user.active,
+        mustChangePassword: user.mustChangePassword
+      };
+    }
+
+    function audit(userId, action, targetId = "", detail = "") {
+      const logs = readStore(STORAGE.audit);
+
+      logs.unshift({
+        timestamp: new Date().toISOString(),
+        userId,
+        action,
+        targetId,
+        detail
+      });
+
+      writeStore(STORAGE.audit, logs.slice(0, 2000));
+    }
+
+    function auth(token) {
+      const session = readStore(STORAGE.session, null);
+
+      if (
+        !session ||
+        session.token !== token ||
+        session.expiresAt < Date.now()
+      ) {
+        throw new Error("세션이 만료되었습니다. 다시 로그인해 주세요.");
+      }
+
+      const user = readStore(STORAGE.users).find(
+        item =>
+          item.userId === session.userId &&
+          item.active === true
+      );
+
+      if (!user) {
+        throw new Error("사용할 수 없는 계정입니다.");
+      }
+
+      session.expiresAt = Date.now() + 6 * 60 * 60 * 1000;
+      writeStore(STORAGE.session, session);
+
+      return user;
+    }
+
+    const LocalApi = {
+      hasUsers() {
+        return readStore(STORAGE.users).length > 0;
+      },
+
+      async createInitialAdmin(name, password) {
+        if (this.hasUsers()) {
+          throw new Error("이미 사용자가 존재합니다.");
         }
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
+        name = String(name || "").trim();
+
+        if (!name) {
+          throw new Error("관리자 이름을 입력해 주세요.");
         }
 
-        // Custom Alert Controls
-        function showAlert(title, msg) {
-            document.getElementById('alertTitle').innerText = title;
-            document.getElementById('alertMsg').innerText = msg;
-            document.getElementById('customAlert').classList.remove('hidden');
+        validatePassword(password);
+
+        const salt = randomId();
+
+        const user = {
+          userId: "admin",
+          name,
+          role: "admin",
+          passwordHash: await hashPassword(password, salt),
+          salt,
+          active: true,
+          mustChangePassword: false,
+          createdAt: new Date().toISOString()
+        };
+
+        writeStore(STORAGE.users, [user]);
+        audit("admin", "INITIAL_ADMIN_CREATED", "admin");
+
+        return { success: true };
+      },
+
+      async login(userId, password) {
+        userId = normalizeId(userId);
+
+        const locks = readStore(STORAGE.loginLock, {});
+        const lock = locks[userId] || {
+          count: 0,
+          until: 0
+        };
+
+        if (lock.until > Date.now()) {
+          throw new Error(
+            "로그인 시도가 잠시 제한되었습니다. 10분 뒤 다시 시도해 주세요."
+          );
         }
 
-        function closeAlert() {
-            document.getElementById('customAlert').classList.add('hidden');
+        const user = readStore(STORAGE.users).find(
+          item =>
+            item.userId === userId &&
+            item.active === true
+        );
+
+        const valid =
+          user &&
+          user.passwordHash ===
+            await hashPassword(String(password || ""), user.salt);
+
+        if (!valid) {
+          lock.count += 1;
+
+          if (lock.count >= 5) {
+            lock.until = Date.now() + 10 * 60 * 1000;
+            lock.count = 0;
+          }
+
+          locks[userId] = lock;
+          writeStore(STORAGE.loginLock, locks);
+
+          audit(userId || "unknown", "LOGIN_FAILED");
+
+          throw new Error(
+            "아이디 또는 비밀번호가 올바르지 않습니다."
+          );
         }
 
-        // Fetch data from Google Sheets API
-        async function fetchData() {
-            if (SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                showAlert('설정 오류', 'Google Apps Script URL이 설정되지 않았습니다. 코드에서 SCRIPT_URL을 변경해주세요.');
-                renderHistory();
-                return;
-            }
+        delete locks[userId];
+        writeStore(STORAGE.loginLock, locks);
 
-            showLoading('데이터를 불러오는 중입니다...');
-            try {
-                const response = await fetch(SCRIPT_URL + "?action=read");
-                if (!response.ok) throw new Error('Network response was not ok');
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    // 데이터 형식을 기존 앱에 맞게 변환
-                    budgetData = result.data.map(row => ({
-                        id: row.id || Date.now(), // id가 없으면 생성
-                        member: row.member,
-                        month: row.month,
-                        category: row.category,
-                        amount: parseInt(row.amount)
-                    }));
-                    renderHistory();
-                    if(document.getElementById('section-dashboard').classList.contains('hidden') === false) {
-                        updateDashboard();
-                    }
-                } else {
-                    showAlert('오류', '데이터를 불러오는데 실패했습니다: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                showAlert('통신 오류', '서버와 통신 중 문제가 발생했습니다.');
-            } finally {
-                hideLoading();
-            }
-        }
+        const token = randomId() + randomId();
 
-        // Tab Switching
-        function switchTab(tab) {
-            const sections = ['input', 'dashboard'];
-            sections.forEach(s => {
-                document.getElementById(`section-${s}`).classList.add('hidden');
-                document.getElementById(`tab-${s}`).classList.remove('tab-active');
-                document.getElementById(`tab-${s}`).classList.add('text-gray-500');
-            });
-            document.getElementById(`section-${tab}`).classList.remove('hidden');
-            document.getElementById(`tab-${tab}`).classList.add('tab-active');
-            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
-
-            if(tab === 'dashboard') {
-                updateDashboard();
-            }
-        }
-
-        // Form Submission (Add Data via API)
-        document.getElementById('budgetForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            if (SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
-                showAlert('설정 오류', 'Google Apps Script URL이 설정되지 않았습니다.');
-                return;
-            }
-            
-            const newEntry = {
-                id: Date.now().toString(),
-                member: document.getElementById('member').value,
-                month: document.getElementById('month').value,
-                category: document.getElementById('category').value,
-                amount: document.getElementById('amount').value
-            };
-
-            showLoading('데이터를 저장하는 중입니다...');
-            
-            try {
-                // URLSearchParams를 사용하여 form 데이터 전송 (CORS 이슈 회피를 위해 POST 대신 GET 파라미터 또는 FormData 사용, 앱스 스크립트는 FormData를 POST로 받는 것이 안정적)
-                const formData = new FormData();
-                formData.append('action', 'insert');
-                formData.append('id', newEntry.id);
-                formData.append('member', newEntry.member);
-                formData.append('month', newEntry.month);
-                formData.append('category', newEntry.category);
-                formData.append('amount', newEntry.amount);
-
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-
-                if(result.status === 'success') {
-                    // 성공 시 로컬 데이터 업데이트 및 UI 갱신
-                    newEntry.amount = parseInt(newEntry.amount); // 로컬에선 숫자로 저장
-                    budgetData.unshift(newEntry);
-                    renderHistory();
-                    this.reset();
-                    // 현재 달로 다시 세팅
-                    const now = new Date();
-                    document.getElementById('month').value = now.toISOString().substring(0, 7);
-                    showAlert('성공', '예산 데이터가 성공적으로 저장되었습니다.');
-                } else {
-                    showAlert('저장 실패', result.message);
-                }
-            } catch (error) {
-                console.error('Error saving data:', error);
-                showAlert('통신 오류', '데이터 저장 중 문제가 발생했습니다.');
-            } finally {
-                hideLoading();
-            }
+        writeStore(STORAGE.session, {
+          token,
+          userId,
+          expiresAt: Date.now() + 6 * 60 * 60 * 1000
         });
 
-        async function deleteEntry(id) {
-            if(!confirm('이 내역을 삭제하시겠습니까?')) return;
-            
-            showLoading('삭제 중...');
-            try {
-                const formData = new FormData();
-                formData.append('action', 'delete');
-                formData.append('id', id);
+        audit(userId, "LOGIN");
 
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
+        return {
+          token,
+          user: publicUser(user)
+        };
+      },
 
-                if(result.status === 'success') {
-                    budgetData = budgetData.filter(item => item.id.toString() !== id.toString());
-                    renderHistory();
-                    showAlert('성공', '삭제되었습니다.');
-                } else {
-                    showAlert('삭제 실패', result.message);
-                }
-            } catch (error) {
-                console.error('Error deleting data:', error);
-                showAlert('통신 오류', '삭제 중 문제가 발생했습니다.');
-            } finally {
-                hideLoading();
+      async logout(token) {
+        try {
+          const user = auth(token);
+          audit(user.userId, "LOGOUT");
+        } catch {}
+
+        localStorage.removeItem(STORAGE.session);
+
+        return { success: true };
+      },
+
+      async getAppData(token) {
+        const user = auth(token);
+        const users = readStore(STORAGE.users);
+        const allEntries = readStore(STORAGE.entries);
+
+        return {
+          user: publicUser(user),
+
+          entries: allEntries
+            .filter(
+              entry =>
+                user.role === "admin" ||
+                entry.memberId === user.userId
+            )
+            .sort((a, b) =>
+              String(b.createdAt).localeCompare(String(a.createdAt))
+            ),
+
+          members: users
+            .filter(item => item.active)
+            .map(publicUser),
+
+          users:
+            user.role === "admin"
+              ? users.map(publicUser)
+              : [],
+
+          categories: CATEGORIES
+        };
+      },
+
+      async changePassword(token, currentPassword, newPassword) {
+        const current = auth(token);
+
+        validatePassword(newPassword);
+
+        const users = readStore(STORAGE.users);
+        const user = users.find(
+          item => item.userId === current.userId
+        );
+
+        const currentHash = await hashPassword(
+          String(currentPassword || ""),
+          user.salt
+        );
+
+        if (user.passwordHash !== currentHash) {
+          throw new Error("현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        user.salt = randomId();
+        user.passwordHash = await hashPassword(
+          newPassword,
+          user.salt
+        );
+        user.mustChangePassword = false;
+
+        writeStore(STORAGE.users, users);
+        audit(user.userId, "PASSWORD_CHANGED");
+
+        return { success: true };
+      },
+
+      async addEntry(token, payload) {
+        const current = auth(token);
+        const users = readStore(STORAGE.users);
+
+        const memberId =
+          current.role === "admin"
+            ? normalizeId(payload.memberId)
+            : current.userId;
+
+        const member = users.find(
+          item =>
+            item.userId === memberId &&
+            item.active === true
+        );
+
+        const amount = Number(payload.amount);
+
+        if (!member) {
+          throw new Error("유효한 팀원을 선택해 주세요.");
+        }
+
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(payload.month)) {
+          throw new Error("올바른 연월을 선택해 주세요.");
+        }
+
+        if (!CATEGORIES.includes(payload.category)) {
+          throw new Error("허용되지 않은 예산 항목입니다.");
+        }
+
+        if (
+          !Number.isSafeInteger(amount) ||
+          amount <= 0 ||
+          amount > 1_000_000_000_000
+        ) {
+          throw new Error(
+            "금액은 1원 이상 1조 원 이하의 정수여야 합니다."
+          );
+        }
+
+        const entries = readStore(STORAGE.entries);
+        const id = randomId();
+
+        entries.unshift({
+          id,
+          memberId,
+          memberName: member.name,
+          month: payload.month,
+          category: payload.category,
+          amount,
+          memo: String(payload.memo || "")
+            .trim()
+            .slice(0, 200),
+          createdAt: new Date().toISOString(),
+          createdBy: current.userId
+        });
+
+        writeStore(STORAGE.entries, entries);
+        audit(current.userId, "ENTRY_CREATED", id);
+
+        return {
+          success: true,
+          id
+        };
+      },
+
+      async deleteEntry(token, id) {
+        const current = auth(token);
+        const entries = readStore(STORAGE.entries);
+        const entry = entries.find(item => item.id === id);
+
+        if (!entry) {
+          throw new Error("삭제할 내역을 찾을 수 없습니다.");
+        }
+
+        if (
+          current.role !== "admin" &&
+          entry.memberId !== current.userId
+        ) {
+          throw new Error(
+            "본인이 등록한 내역만 삭제할 수 있습니다."
+          );
+        }
+
+        writeStore(
+          STORAGE.entries,
+          entries.filter(item => item.id !== id)
+        );
+
+        audit(current.userId, "ENTRY_DELETED", id);
+
+        return { success: true };
+      },
+
+      async clearAllEntries(token, confirmation) {
+        const current = auth(token);
+
+        if (current.role !== "admin") {
+          throw new Error("관리자 권한이 필요합니다.");
+        }
+
+        if (confirmation !== "전체삭제") {
+          throw new Error("확인 문구가 일치하지 않습니다.");
+        }
+
+        const count = readStore(STORAGE.entries).length;
+
+        writeStore(STORAGE.entries, []);
+        audit(
+          current.userId,
+          "ALL_ENTRIES_CLEARED",
+          "",
+          String(count)
+        );
+
+        return {
+          success: true,
+          deletedCount: count
+        };
+      },
+
+      async createUser(token, payload) {
+        const current = auth(token);
+
+        if (current.role !== "admin") {
+          throw new Error("관리자 권한이 필요합니다.");
+        }
+
+        const users = readStore(STORAGE.users);
+        const userId = normalizeId(payload.userId);
+        const name = String(payload.name || "").trim();
+        const role = String(payload.role || "user");
+
+        if (!/^[a-z0-9._-]{3,40}$/.test(userId)) {
+          throw new Error(
+            "아이디는 영문 소문자·숫자·._- 조합 3~40자로 입력해 주세요."
+          );
+        }
+
+        if (!name) {
+          throw new Error("이름을 입력해 주세요.");
+        }
+
+        if (!["admin", "user"].includes(role)) {
+          throw new Error("허용되지 않은 권한입니다.");
+        }
+
+        if (users.some(user => user.userId === userId)) {
+          throw new Error("이미 사용 중인 아이디입니다.");
+        }
+
+        const temporaryPassword =
+          "T!" +
+          randomId().replace(/-/g, "").slice(0, 10) +
+          "a9";
+
+        const salt = randomId();
+
+        users.push({
+          userId,
+          name,
+          role,
+          passwordHash: await hashPassword(
+            temporaryPassword,
+            salt
+          ),
+          salt,
+          active: true,
+          mustChangePassword: true,
+          createdAt: new Date().toISOString()
+        });
+
+        writeStore(STORAGE.users, users);
+        audit(current.userId, "USER_CREATED", userId);
+
+        return {
+          success: true,
+          userId,
+          temporaryPassword
+        };
+      },
+
+      async updateUser(token, payload) {
+        const current = auth(token);
+
+        if (current.role !== "admin") {
+          throw new Error("관리자 권한이 필요합니다.");
+        }
+
+        const users = readStore(STORAGE.users);
+        const user = users.find(
+          item =>
+            item.userId === normalizeId(payload.userId)
+        );
+
+        const name = String(payload.name || "").trim();
+        const role = String(payload.role);
+
+        if (!user) {
+          throw new Error("수정할 팀원을 찾을 수 없습니다.");
+        }
+
+        if (!name) {
+          throw new Error("이름을 입력해 주세요.");
+        }
+
+        if (!["admin", "user"].includes(role)) {
+          throw new Error("허용되지 않은 권한입니다.");
+        }
+
+        if (
+          user.userId === current.userId &&
+          role !== "admin"
+        ) {
+          throw new Error(
+            "현재 로그인한 관리자의 권한은 변경할 수 없습니다."
+          );
+        }
+
+        user.name = name;
+        user.role = role;
+
+        writeStore(STORAGE.users, users);
+
+        const entries = readStore(STORAGE.entries);
+
+        entries.forEach(entry => {
+          if (entry.memberId === user.userId) {
+            entry.memberName = name;
+          }
+        });
+
+        writeStore(STORAGE.entries, entries);
+        audit(current.userId, "USER_UPDATED", user.userId);
+
+        return { success: true };
+      },
+
+      async setUserActive(token, userId, active) {
+        const current = auth(token);
+
+        if (current.role !== "admin") {
+          throw new Error("관리자 권한이 필요합니다.");
+        }
+
+        userId = normalizeId(userId);
+
+        if (userId === current.userId && !active) {
+          throw new Error(
+            "현재 로그인한 관리자 계정은 비활성화할 수 없습니다."
+          );
+        }
+
+        const users = readStore(STORAGE.users);
+        const user = users.find(
+          item => item.userId === userId
+        );
+
+        if (!user) {
+          throw new Error("사용자를 찾을 수 없습니다.");
+        }
+
+        user.active = active === true;
+
+        writeStore(STORAGE.users, users);
+
+        audit(
+          current.userId,
+          user.active
+            ? "USER_ACTIVATED"
+            : "USER_DEACTIVATED",
+          userId
+        );
+
+        return { success: true };
+      },
+
+      async resetUserPassword(token, userId) {
+        const current = auth(token);
+
+        if (current.role !== "admin") {
+          throw new Error("관리자 권한이 필요합니다.");
+        }
+
+        const users = readStore(STORAGE.users);
+        const user = users.find(
+          item => item.userId === normalizeId(userId)
+        );
+
+        if (!user) {
+          throw new Error("사용자를 찾을 수 없습니다.");
+        }
+
+        const temporaryPassword =
+          "T!" +
+          randomId().replace(/-/g, "").slice(0, 10) +
+          "a9";
+
+        user.salt = randomId();
+        user.passwordHash = await hashPassword(
+          temporaryPassword,
+          user.salt
+        );
+        user.mustChangePassword = true;
+
+        writeStore(STORAGE.users, users);
+        audit(current.userId, "PASSWORD_RESET", user.userId);
+
+        return {
+          success: true,
+          temporaryPassword
+        };
+      }
+    };
+
+    async function server(name, ...args) {
+      if (typeof LocalApi[name] !== "function") {
+        throw new Error("지원하지 않는 기능입니다.");
+      }
+
+      return LocalApi[name](...args);
+    }
+
+    function busy(show, text = "처리 중...") {
+      $("loadingText").textContent = text;
+      $("loading").classList.toggle("hidden", !show);
+      $("loading").classList.toggle("flex", show);
+    }
+
+    function dialog(title, message) {
+      $("dialogTitle").textContent = title;
+      $("dialogMessage").textContent = message;
+      $("dialog").classList.remove("hidden");
+      $("dialog").classList.add("flex");
+    }
+
+    function closeDialog() {
+      $("dialog").classList.add("hidden");
+      $("dialog").classList.remove("flex");
+    }
+
+    function showLogin(message = "") {
+      $("appView").classList.add("hidden");
+      $("loginView").classList.remove("hidden");
+
+      $("loginError").textContent = message;
+      $("loginError").classList.toggle("hidden", !message);
+
+      $("firstRunPanel").classList.toggle(
+        "hidden",
+        LocalApi.hasUsers()
+      );
+    }
+
+    function handleError(error) {
+      const message =
+        error?.message ||
+        "알 수 없는 오류가 발생했습니다.";
+
+      if (message.includes("세션이 만료")) {
+        sessionStorage.removeItem("budgetToken");
+        state.token = "";
+        showLogin(message);
+        return;
+      }
+
+      dialog("처리할 수 없습니다", message);
+    }
+
+    $("passwordToggle").addEventListener("click", () => {
+      const input = $("loginPassword");
+
+      input.type =
+        input.type === "password"
+          ? "text"
+          : "password";
+
+      $("passwordToggle").textContent =
+        input.type === "password"
+          ? "보기"
+          : "숨김";
+    });
+
+    $("setupButton").addEventListener("click", async () => {
+      busy(true, "관리자 계정을 만드는 중...");
+
+      try {
+        await LocalApi.createInitialAdmin(
+          $("setupName").value,
+          $("setupPassword").value
+        );
+
+        $("loginId").value = "admin";
+        $("setupPassword").value = "";
+
+        showLogin();
+
+        dialog(
+          "설정 완료",
+          "관리자 아이디는 admin입니다.\n방금 설정한 비밀번호로 로그인하세요."
+        );
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    });
+
+    $("loginForm").addEventListener("submit", async event => {
+      event.preventDefault();
+
+      busy(true, "로그인 중...");
+      $("loginError").classList.add("hidden");
+
+      try {
+        const result = await server(
+          "login",
+          $("loginId").value,
+          $("loginPassword").value
+        );
+
+        state.token = result.token;
+        sessionStorage.setItem(
+          "budgetToken",
+          state.token
+        );
+
+        $("loginPassword").value = "";
+
+        await loadApp();
+      } catch (error) {
+        showLogin(error.message);
+      } finally {
+        busy(false);
+      }
+    });
+
+    async function loadApp() {
+      const data = await server(
+        "getAppData",
+        state.token
+      );
+
+      Object.assign(state, data);
+
+      $("loginView").classList.add("hidden");
+      $("appView").classList.remove("hidden");
+
+      $("userName").textContent = state.user.name;
+      $("userRole").textContent =
+        state.user.role === "admin"
+          ? "관리자"
+          : "일반 사용자";
+
+      const isAdmin = state.user.role === "admin";
+
+      $("usersTabButton").classList.toggle(
+        "hidden",
+        !isAdmin
+      );
+
+      $("clearAllButton").classList.toggle(
+        "hidden",
+        !isAdmin
+      );
+
+      $("backupButton").classList.toggle(
+        "hidden",
+        !isAdmin
+      );
+
+      $("restoreLabel").classList.toggle(
+        "hidden",
+        !isAdmin
+      );
+
+      fillSelects();
+      renderAll();
+
+      if (state.user.mustChangePassword) {
+        $("currentPassword").value = "";
+        $("newPassword").value = "";
+
+        $("passwordModal").classList.remove("hidden");
+        $("passwordModal").classList.add("flex");
+      }
+    }
+
+    async function refreshData() {
+      busy(true, "데이터를 새로고침하는 중...");
+
+      try {
+        await loadApp();
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    async function logoutApp() {
+      try {
+        if (state.token) {
+          await server("logout", state.token);
+        }
+      } finally {
+        sessionStorage.removeItem("budgetToken");
+        state.token = "";
+        showLogin();
+      }
+    }
+
+    function fillSelects() {
+      const member = $("memberId");
+
+      member.replaceChildren();
+
+      state.members.forEach(user => {
+        const option = document.createElement("option");
+
+        option.value = user.userId;
+        option.textContent =
+          `${user.name} (${user.userId})`;
+
+        member.appendChild(option);
+      });
+
+      member.value = state.user.userId;
+      member.disabled = state.user.role !== "admin";
+
+      $("category").replaceChildren();
+      $("filterCategory").replaceChildren();
+
+      const allOption = document.createElement("option");
+      allOption.value = "";
+      allOption.textContent = "전체 항목";
+      $("filterCategory").appendChild(allOption);
+
+      state.categories.forEach(category => {
+        const inputOption =
+          document.createElement("option");
+
+        inputOption.value = category;
+        inputOption.textContent = category;
+
+        const filterOption =
+          document.createElement("option");
+
+        filterOption.value = category;
+        filterOption.textContent = category;
+
+        $("category").appendChild(inputOption);
+        $("filterCategory").appendChild(filterOption);
+      });
+
+      $("month").value =
+        new Date().toISOString().slice(0, 7);
+    }
+
+    function filteredEntries() {
+      const query =
+        $("searchInput").value.trim().toLowerCase();
+
+      const month = $("filterMonth").value;
+      const category = $("filterCategory").value;
+
+      return state.entries.filter(entry => {
+        const searchText =
+          `${entry.memberName} ${entry.memo || ""}`
+            .toLowerCase();
+
+        return (
+          (!query || searchText.includes(query)) &&
+          (!month || entry.month === month) &&
+          (!category || entry.category === category)
+        );
+      });
+    }
+
+    function renderAll() {
+      renderHistory();
+      renderDashboard();
+      renderUsers();
+    }
+
+    function renderHistory() {
+      const entries = filteredEntries();
+      const body = $("historyBody");
+
+      body.replaceChildren();
+
+      $("resultCount").textContent =
+        `${entries.length.toLocaleString()}건 표시`;
+
+      if (!entries.length) {
+        const row = body.insertRow();
+        const cell = row.insertCell();
+
+        cell.colSpan = 6;
+        cell.className =
+          "p-10 text-center text-gray-400";
+        cell.textContent =
+          "조건에 맞는 내역이 없습니다.";
+
+        return;
+      }
+
+      entries.forEach(item => {
+        const row = body.insertRow();
+
+        row.className =
+          "border-t hover:bg-slate-50";
+
+        [
+          item.month,
+          item.memberName,
+          item.category,
+          item.memo || "-"
+        ].forEach(value => {
+          const cell = row.insertCell();
+
+          cell.className =
+            "p-3 whitespace-nowrap";
+          cell.textContent = value;
+        });
+
+        const amountCell = row.insertCell();
+
+        amountCell.className =
+          "p-3 text-right font-bold whitespace-nowrap";
+        amountCell.textContent = money(item.amount);
+
+        const actionCell = row.insertCell();
+        actionCell.className = "p-3 text-right";
+
+        const button =
+          document.createElement("button");
+
+        button.type = "button";
+        button.className =
+          "text-red-600 hover:underline";
+        button.textContent = "삭제";
+        button.onclick = () => removeEntry(item.id);
+
+        actionCell.appendChild(button);
+      });
+    }
+
+    $("entryForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        const button = $("saveButton");
+
+        button.disabled = true;
+        busy(true, "예산 내역을 저장하는 중...");
+
+        try {
+          await server("addEntry", state.token, {
+            memberId: $("memberId").value,
+            month: $("month").value,
+            category: $("category").value,
+            amount: Number($("amount").value),
+            memo: $("memo").value
+          });
+
+          $("amount").value = "";
+          $("memo").value = "";
+
+          await loadApp();
+
+          dialog(
+            "저장 완료",
+            "예산 내역이 저장되었습니다."
+          );
+        } catch (error) {
+          handleError(error);
+        } finally {
+          button.disabled = false;
+          busy(false);
+        }
+      }
+    );
+
+    async function removeEntry(id) {
+      if (!confirm("이 내역을 삭제하시겠습니까?")) {
+        return;
+      }
+
+      busy(true, "삭제 중...");
+
+      try {
+        await server(
+          "deleteEntry",
+          state.token,
+          id
+        );
+
+        await loadApp();
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    async function confirmClearAll() {
+      const text = prompt(
+        "모든 예산 내역을 삭제하려면 “전체삭제”를 입력하세요."
+      );
+
+      if (text !== "전체삭제") {
+        return;
+      }
+
+      busy(true, "전체 내역을 삭제하는 중...");
+
+      try {
+        const result = await server(
+          "clearAllEntries",
+          state.token,
+          text
+        );
+
+        await loadApp();
+
+        dialog(
+          "삭제 완료",
+          `${result.deletedCount}건을 삭제했습니다.`
+        );
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    [
+      "searchInput",
+      "filterMonth",
+      "filterCategory"
+    ].forEach(id => {
+      $(id).addEventListener(
+        id === "searchInput" ? "input" : "change",
+        () => {
+          renderHistory();
+          renderDashboard();
+        }
+      );
+    });
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(tab => {
+          tab.classList.remove("tab-active");
+          tab.classList.add("bg-white", "border");
+        });
+
+        button.classList.add("tab-active");
+        button.classList.remove("bg-white", "border");
+
+        document
+          .querySelectorAll(".tab-panel")
+          .forEach(panel =>
+            panel.classList.add("hidden")
+          );
+
+        $(`tab-${button.dataset.tab}`)
+          .classList.remove("hidden");
+
+        if (button.dataset.tab === "dashboard") {
+          renderDashboard();
+        }
+      });
+    });
+
+    function renderDashboard() {
+      const entries = filteredEntries();
+
+      const total = entries.reduce(
+        (sum, entry) =>
+          sum + Number(entry.amount),
+        0
+      );
+
+      const categoryMap = {};
+      const monthlyMap = {};
+
+      entries.forEach(entry => {
+        categoryMap[entry.category] =
+          (categoryMap[entry.category] || 0) +
+          Number(entry.amount);
+
+        monthlyMap[entry.month] =
+          (monthlyMap[entry.month] || 0) +
+          Number(entry.amount);
+      });
+
+      const topCategory =
+        Object.keys(categoryMap).sort(
+          (a, b) =>
+            categoryMap[b] - categoryMap[a]
+        )[0];
+
+      $("statTotal").textContent = money(total);
+
+      $("statTop").textContent = topCategory
+        ? `${topCategory} · ${money(
+            categoryMap[topCategory]
+          )}`
+        : "-";
+
+      $("statCount").textContent =
+        `${entries.length}건`;
+
+      state.charts.forEach(chart => chart.destroy());
+      state.charts = [];
+
+      state.charts.push(
+        new Chart($("categoryChart"), {
+          type: "doughnut",
+          data: {
+            labels: Object.keys(categoryMap),
+            datasets: [{
+              data: Object.values(categoryMap),
+              backgroundColor: [
+                "#2563eb",
+                "#10b981",
+                "#8b5cf6"
+              ],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "66%"
+          }
+        })
+      );
+
+      const months =
+        Object.keys(monthlyMap).sort();
+
+      state.charts.push(
+        new Chart($("monthlyChart"), {
+          type: "line",
+          data: {
+            labels: months,
+            datasets: [{
+              label: "사용 금액",
+              data: months.map(
+                month => monthlyMap[month]
+              ),
+              borderColor: "#2563eb",
+              backgroundColor:
+                "rgba(37,99,235,.12)",
+              fill: true,
+              tension: .3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
             }
+          }
+        })
+      );
+
+      renderSummary(entries);
+    }
+
+    function renderSummary(entries) {
+      const summary = {};
+
+      entries.forEach(entry => {
+        if (!summary[entry.month]) {
+          summary[entry.month] = {
+            수선유지비: 0,
+            비품: 0,
+            개량공사: 0
+          };
         }
 
-        async function clearData() {
-            if(confirm('정말로 모든 데이터를 삭제하시겠습니까? (이 작업은 DB에서도 즉시 삭제되며 되돌릴 수 없습니다.)')) {
-                showLoading('전체 데이터 삭제 중...');
-                try {
-                    const formData = new FormData();
-                    formData.append('action', 'clearAll');
+        summary[entry.month][entry.category] +=
+          Number(entry.amount);
+      });
 
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
+      const body = $("summaryBody");
+      body.replaceChildren();
 
-                    if(result.status === 'success') {
-                        budgetData = [];
-                        renderHistory();
-                        showAlert('성공', '모든 데이터가 초기화되었습니다.');
-                    } else {
-                        showAlert('초기화 실패', result.message);
-                    }
-                } catch (error) {
-                    console.error('Error clearing data:', error);
-                    showAlert('통신 오류', '초기화 중 문제가 발생했습니다.');
-                } finally {
-                    hideLoading();
-                }
+      Object.keys(summary)
+        .sort()
+        .reverse()
+        .forEach(month => {
+          const row = body.insertRow();
+
+          row.className = "border-t";
+
+          const total = CATEGORIES.reduce(
+            (sum, category) =>
+              sum + summary[month][category],
+            0
+          );
+
+          const values = [
+            month,
+            ...CATEGORIES.map(
+              category => summary[month][category]
+            ),
+            total
+          ];
+
+          values.forEach((value, index) => {
+            const cell = row.insertCell();
+
+            cell.className =
+              "p-3 " +
+              (index ? "text-right" : "text-left");
+
+            cell.textContent =
+              index ? money(value) : value;
+          });
+        });
+    }
+
+    function exportCsv() {
+      const rows = [
+        ["연월", "팀원", "항목", "메모", "금액"],
+        ...filteredEntries().map(entry => [
+          entry.month,
+          entry.memberName,
+          entry.category,
+          entry.memo,
+          entry.amount
+        ])
+      ];
+
+      const escapeCsv = value =>
+        `"${String(value ?? "").replace(
+          /"/g,
+          '""'
+        )}"`;
+
+      const csv =
+        "\uFEFF" +
+        rows
+          .map(row =>
+            row.map(escapeCsv).join(",")
+          )
+          .join("\r\n");
+
+      const url = URL.createObjectURL(
+        new Blob([csv], {
+          type: "text/csv;charset=utf-8"
+        })
+      );
+
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download =
+        `팀예산_${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv`;
+
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportBackup() {
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        users: readStore(STORAGE.users),
+        entries: readStore(STORAGE.entries),
+        audit: readStore(STORAGE.audit)
+      };
+
+      const url = URL.createObjectURL(
+        new Blob(
+          [JSON.stringify(backup, null, 2)],
+          { type: "application/json" }
+        )
+      );
+
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download =
+        `팀예산_백업_${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    $("restoreInput").addEventListener(
+      "change",
+      async event => {
+        const file = event.target.files[0];
+
+        if (!file) {
+          return;
+        }
+
+        if (
+          !confirm(
+            "현재 데이터를 백업 파일 내용으로 교체하시겠습니까?"
+          )
+        ) {
+          event.target.value = "";
+          return;
+        }
+
+        try {
+          const backup = JSON.parse(
+            await file.text()
+          );
+
+          if (
+            backup.version !== 1 ||
+            !Array.isArray(backup.users) ||
+            !Array.isArray(backup.entries)
+          ) {
+            throw new Error(
+              "지원하지 않는 백업 파일입니다."
+            );
+          }
+
+          writeStore(
+            STORAGE.users,
+            backup.users
+          );
+
+          writeStore(
+            STORAGE.entries,
+            backup.entries
+          );
+
+          writeStore(
+            STORAGE.audit,
+            Array.isArray(backup.audit)
+              ? backup.audit
+              : []
+          );
+
+          await loadApp();
+
+          dialog(
+            "복원 완료",
+            "백업 데이터를 불러왔습니다."
+          );
+        } catch (error) {
+          handleError(error);
+        } finally {
+          event.target.value = "";
+        }
+      }
+    );
+
+    function renderUsers() {
+      if (state.user?.role !== "admin") {
+        return;
+      }
+
+      const list = $("userList");
+      list.replaceChildren();
+
+      state.users.forEach(user => {
+        const card =
+          document.createElement("div");
+
+        card.className =
+          "border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3";
+
+        const info =
+          document.createElement("div");
+
+        const title =
+          document.createElement("p");
+
+        title.className = "font-bold";
+        title.textContent =
+          `${user.name} · ${user.userId}`;
+
+        const description =
+          document.createElement("p");
+
+        description.className =
+          "text-sm text-gray-500";
+
+        description.textContent =
+          `${user.role === "admin"
+            ? "관리자"
+            : "일반 사용자"} / ${
+            user.active
+              ? "활성"
+              : "비활성"
+          }`;
+
+        info.append(title, description);
+
+        const actions =
+          document.createElement("div");
+
+        actions.className =
+          "flex flex-wrap gap-2";
+
+        const editButton =
+          document.createElement("button");
+
+        editButton.type = "button";
+        editButton.className =
+          "btn border text-sm";
+        editButton.textContent = "팀원 편집";
+        editButton.onclick =
+          () => editUser(user);
+
+        const resetButton =
+          document.createElement("button");
+
+        resetButton.type = "button";
+        resetButton.className =
+          "btn border text-sm";
+        resetButton.textContent =
+          "비밀번호 초기화";
+        resetButton.onclick =
+          () => resetPassword(user.userId);
+
+        const toggleButton =
+          document.createElement("button");
+
+        toggleButton.type = "button";
+        toggleButton.className =
+          "btn border text-sm";
+
+        toggleButton.textContent =
+          user.active
+            ? "비활성화"
+            : "활성화";
+
+        toggleButton.onclick =
+          () => toggleUser(user);
+
+        actions.append(
+          editButton,
+          resetButton,
+          toggleButton
+        );
+
+        card.append(info, actions);
+        list.appendChild(card);
+      });
+    }
+
+    $("userForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        busy(true, "팀원을 추가하는 중...");
+
+        try {
+          const result = await server(
+            "createUser",
+            state.token,
+            {
+              userId: $("newUserId").value,
+              name: $("newUserName").value,
+              role: $("newUserRole").value
             }
+          );
+
+          event.target.reset();
+
+          await loadApp();
+
+          dialog(
+            "팀원 생성 완료",
+            `아이디: ${result.userId}\n` +
+            `임시 비밀번호: ${result.temporaryPassword}\n\n` +
+            "이 비밀번호는 다시 표시되지 않습니다."
+          );
+        } catch (error) {
+          handleError(error);
+        } finally {
+          busy(false);
         }
+      }
+    );
 
-        function renderHistory() {
-            const body = document.getElementById('historyBody');
-            body.innerHTML = budgetData.map(item => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-600">${item.month}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-gray-800">${item.member}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded-full text-xs font-medium 
-                            ${item.category === '수선유지비' ? 'bg-blue-100 text-blue-800' : 
-                              item.category === '비품' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
-                            ${item.category}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-right font-mono">${item.amount.toLocaleString()}원</td>
-                    <td class="px-4 py-3 text-right">
-                        <button onclick="deleteEntry('${item.id}')" class="text-red-400 hover:text-red-600">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
-            
-            if(budgetData.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="py-10 text-center text-gray-400">등록된 데이터가 없습니다.</td></tr>`;
-            }
+    async function editUser(user) {
+      const name = prompt(
+        "수정할 팀원 이름을 입력하세요.",
+        user.name
+      );
+
+      if (name === null) {
+        return;
+      }
+
+      const role = prompt(
+        "권한을 입력하세요. (admin 또는 user)",
+        user.role
+      );
+
+      if (role === null) {
+        return;
+      }
+
+      if (!["admin", "user"].includes(role)) {
+        dialog(
+          "입력 확인",
+          "권한은 admin 또는 user로 입력해 주세요."
+        );
+
+        return;
+      }
+
+      busy(true, "팀원 정보를 수정하는 중...");
+
+      try {
+        await server(
+          "updateUser",
+          state.token,
+          {
+            userId: user.userId,
+            name,
+            role
+          }
+        );
+
+        await loadApp();
+
+        dialog(
+          "수정 완료",
+          "팀원 정보와 기존 예산 내역의 표시 이름을 갱신했습니다."
+        );
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    async function resetPassword(userId) {
+      if (
+        !confirm(
+          `${userId}의 비밀번호를 초기화하시겠습니까?`
+        )
+      ) {
+        return;
+      }
+
+      busy(true, "비밀번호를 초기화하는 중...");
+
+      try {
+        const result = await server(
+          "resetUserPassword",
+          state.token,
+          userId
+        );
+
+        dialog(
+          "임시 비밀번호 발급",
+          `${result.temporaryPassword}\n\n` +
+          "사용자에게 안전한 방법으로 전달하세요."
+        );
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    async function toggleUser(user) {
+      const action =
+        user.active
+          ? "비활성화"
+          : "활성화";
+
+      if (
+        !confirm(
+          `${user.userId} 계정을 ${action}하시겠습니까?`
+        )
+      ) {
+        return;
+      }
+
+      busy(true, "계정 상태를 변경하는 중...");
+
+      try {
+        await server(
+          "setUserActive",
+          state.token,
+          user.userId,
+          !user.active
+        );
+
+        await loadApp();
+      } catch (error) {
+        handleError(error);
+      } finally {
+        busy(false);
+      }
+    }
+
+    $("passwordForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        busy(true, "비밀번호를 변경하는 중...");
+
+        try {
+          await server(
+            "changePassword",
+            state.token,
+            $("currentPassword").value,
+            $("newPassword").value
+          );
+
+          $("passwordModal")
+            .classList.add("hidden");
+
+          $("passwordModal")
+            .classList.remove("flex");
+
+          await loadApp();
+
+          dialog(
+            "변경 완료",
+            "새 비밀번호가 적용되었습니다."
+          );
+        } catch (error) {
+          handleError(error);
+        } finally {
+          busy(false);
         }
+      }
+    );
 
-        // Dashboard Logic
-        function updateDashboard() {
-            const total = budgetData.reduce((acc, curr) => acc + curr.amount, 0);
-            document.getElementById('stat-total').innerText = total.toLocaleString() + '원';
-            document.getElementById('stat-count').innerText = budgetData.length + '건';
+    window.addEventListener("load", async () => {
+      if (!state.token) {
+        showLogin();
+        return;
+      }
 
-            // Category aggregation
-            const catMap = budgetData.reduce((acc, curr) => {
-                acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
-                return acc;
-            }, {});
-            
-            const topCategory = Object.keys(catMap).reduce((a, b) => catMap[a] > catMap[b] ? a : b, '-');
-            document.getElementById('stat-top-category').innerText = topCategory !== '-' ? `${topCategory} (${catMap[topCategory].toLocaleString()}원)` : '-';
+      busy(true, "세션을 확인하는 중...");
 
-            // Charts
-            renderCharts(catMap);
-            renderSummaryTable();
-        }
+      try {
+        await loadApp();
+      } catch {
+        sessionStorage.removeItem("budgetToken");
+        state.token = "";
 
-        function renderCharts(catMap) {
-            const catCtx = document.getElementById('categoryChart').getContext('2d');
-            const memCtx = document.getElementById('memberChart').getContext('2d');
-
-            // Destroy existing charts if they exist
-            if(categoryChart) categoryChart.destroy();
-            if(memberChart) memberChart.destroy();
-
-            // Category Chart (Doughnut)
-            categoryChart = new Chart(catCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(catMap),
-                    datasets: [{
-                        data: Object.values(catMap),
-                        backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'],
-                        borderWidth: 0
-                    }]
-                },
-                options: { responsive: true, cutout: '70%' }
-            });
-
-            // Member Chart (Bar)
-            const memMap = budgetData.reduce((acc, curr) => {
-                acc[curr.member] = (acc[curr.member] || 0) + curr.amount;
-                return acc;
-            }, {});
-
-            memberChart = new Chart(memCtx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(memMap),
-                    datasets: [{
-                        label: '사용 금액',
-                        data: Object.values(memMap),
-                        backgroundColor: '#60a5fa'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: true, grid: { display: false } } }
-                }
-            });
-        }
-
-        function renderSummaryTable() {
-            const tableBody = document.getElementById('summaryTableBody');
-            const monthlyData = {};
-
-            // Grouping data by month and category
-            budgetData.forEach(item => {
-                if(!monthlyData[item.month]) {
-                    monthlyData[item.month] = { '수선유지비': 0, '비품': 0, '개량공사': 0, total: 0 };
-                }
-                monthlyData[item.month][item.category] += item.amount;
-                monthlyData[item.month].total += item.amount;
-            });
-
-            // Sorting months descending
-            const sortedMonths = Object.keys(monthlyData).sort((a, b) => b.localeCompare(a));
-
-            tableBody.innerHTML = sortedMonths.map(month => {
-                const row = monthlyData[month];
-                return `
-                    <tr>
-                        <td class="border border-gray-200 px-4 py-2 font-semibold">${month}</td>
-                        <td class="border border-gray-200 px-4 py-2">${row['수선유지비'].toLocaleString()}</td>
-                        <td class="border border-gray-200 px-4 py-2">${row['비품'].toLocaleString()}</td>
-                        <td class="border border-gray-200 px-4 py-2">${row['개량공사'].toLocaleString()}</td>
-                        <td class="border border-gray-200 px-4 py-2 bg-gray-50 font-bold">${row.total.toLocaleString()}</td>
-                    </tr>
-                `;
-            }).join('');
-            
-            if(sortedMonths.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-gray-400">데이터가 없습니다.</td></tr>`;
-            }
-        }
-
-        // Custom Alert Controls
-        function showAlert(title, msg) {
-            document.getElementById('alertTitle').innerText = title;
-            document.getElementById('alertMsg').innerText = msg;
-            document.getElementById('customAlert').classList.remove('hidden');
-        }
-
-        function closeAlert() {
-            document.getElementById('customAlert').classList.add('hidden');
-        }
-
-        // Initial Load
-        window.onload = function() {
-            // Set current month as default
-            const now = new Date();
-            const monthStr = now.toISOString().substring(0, 7);
-            document.getElementById('month').value = monthStr;
-            
-            // 앱스 스크립트에서 데이터 불러오기
-            fetchData();
-        }
-    </script>
+        showLogin(
+          "세션이 만료되었습니다. 다시 로그인해 주세요."
+        );
+      } finally {
+        busy(false);
+      }
+    });
+  </script>
 </body>
-</html>```
+</html>
