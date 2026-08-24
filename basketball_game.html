@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MG 새마을금고 상생 농구 슛아웃 챌린지</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mg: {
+                            blue: '#004B99',      // 새마을금고 시그니처 블루
+                            darkblue: '#003066',  // 다크 블루
+                            lightblue: '#0072CE', // 라이트 블루
+                            sky: '#E8F2FA',       // 연한 배경 블루
+                            gold: '#F59E0B'       // 골드 포인트
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            user-select: none;
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-slate-900 text-slate-100">
+
+    <!-- Navigation Header -->
+    <header class="bg-mg-darkblue text-white shadow-lg sticky top-0 z-30 border-b border-blue-900/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2">
+                <div class="bg-white text-mg-blue font-black text-lg px-2.5 py-1 rounded-lg flex items-center shadow-inner">
+                    <i class="fa-solid font-black text-mg-blue mr-1">MG</i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm sm:text-base leading-tight tracking-tight">상생 농구 슛아웃 챌린지</h1>
+                    <p class="text-[11px] text-blue-200 hidden md:block">클린슛을 성공시키고 대출 우대금리를 획득하세요!</p>
+                </div>
+            </div>
+
+            <!-- Inter-connected Site Links (game.html removed, basketball added) -->
+            <div class="flex items-center gap-1.5 sm:gap-2 text-xs">
+                <a href="index.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="메인 기획 보고서">
+                    <i class="fa-solid fa-file-invoice text-xs"></i>
+                    <span class="hidden sm:inline">메인 보고서</span>
+                </a>
+                <a href="cal" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="대출 상환 계산기">
+                    <i class="fa-solid fa-calculator text-xs"></i>
+                    <span class="hidden sm:inline">대출계산기</span>
+                </a>
+                <a href="soccer.html" class="inline-flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 rounded-lg transition border border-white/20" title="승부차기 미니게임">
+                    <i class="fa-solid fa-futbol text-xs"></i>
+                    <span class="hidden sm:inline">승부차기</span>
+                </a>
+                <a href="basketball.html" class="inline-flex items-center space-x-1 bg-amber-500 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg shadow-md border border-amber-400">
+                    <i class="fa-solid fa-basketball text-xs"></i>
+                    <span>농구 챌린지</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 flex flex-col items-center justify-center space-y-4">
+
+        <!-- Top Scoreboard -->
+        <div class="w-full bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-2 backdrop-blur-md">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-lg">
+                    <i class="fa-solid fa-basketball"></i>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">남은 슛 기회</div>
+                    <div class="text-xl sm:text-2xl font-black text-white" id="shotsLeftDisplay">5 / 5</div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-6 text-center">
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">성공 (SWISH)</div>
+                    <div class="text-xl sm:text-2xl font-black text-emerald-400" id="basketsDisplay">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 font-medium">실패 (MISS)</div>
+                    <div class="text-xl sm:text-2xl font-black text-rose-400" id="missesDisplay">0</div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div class="text-right">
+                    <div class="text-xs text-slate-400 font-medium">획득 우대금리</div>
+                    <div class="text-xl sm:text-2xl font-black text-amber-400" id="discountDisplay">-0.00%p</div>
+                </div>
+                <button onclick="toggleAudio()" id="audioBtn" class="w-9 h-9 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 flex items-center justify-center text-sm transition">
+                    <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Canvas Area -->
+        <div class="relative w-full max-w-3xl aspect-[16/10] bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
+            <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+            <!-- Overlay Basket Announcement -->
+            <div id="basketOverlay" class="absolute inset-0 bg-emerald-950/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-300 transform scale-75">
+                <span class="text-4xl sm:text-6xl font-black text-amber-300 tracking-wider drop-shadow-lg animate-bounce">SWISH! 🏀</span>
+                <span class="text-sm sm:text-base text-emerald-200 font-bold mt-2 bg-emerald-900/80 px-4 py-1.5 rounded-full border border-emerald-400/30">
+                    우대금리 -0.10%p 획득!
+                </span>
+            </div>
+
+            <!-- Overlay Miss Announcement -->
+            <div id="missOverlay" class="absolute inset-0 bg-rose-950/60 backdrop-blur-xs flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-300 transform scale-75">
+                <span class="text-4xl sm:text-6xl font-black text-rose-400 tracking-wider drop-shadow-lg">AIR BALL!</span>
+                <span class="text-sm sm:text-base text-rose-200 font-bold mt-2 bg-rose-900/80 px-4 py-1.5 rounded-full border border-rose-400/30">
+                    아쉽게 노골입니다!
+                </span>
+            </div>
+        </div>
+
+        <!-- Controls Area -->
+        <div class="w-full max-w-3xl bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 shadow-lg space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                
+                <!-- Angle Selector slider -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between text-xs font-bold text-slate-300">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-compass text-amber-400"></i> 1. 슈팅 각도 조절</span>
+                        <span id="angleText" class="text-amber-400 font-bold">50°</span>
+                    </div>
+                    <input type="range" id="angleSlider" min="30" max="75" value="50" oninput="updateAngleText()" class="w-full accent-amber-400 bg-slate-700 h-2 rounded-lg cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
+                        <span>낮은 탄도 (30°)</span>
+                        <span>표준 (50°)</span>
+                        <span>높은 탄도 (75°)</span>
+                    </div>
+                </div>
+
+                <!-- Power Gauge & Shoot Button -->
+                <div class="space-y-2 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                            <span>2. 파워 타이밍</span>
+                            <span id="powerValueText" class="text-orange-400 font-bold">50%</span>
+                        </div>
+                        <div class="w-full h-5 bg-slate-950 rounded-lg overflow-hidden p-0.5 border border-slate-700 relative">
+                            <div id="powerGauge" class="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded transition-all duration-75" style="width: 50%;"></div>
+                            <div class="absolute inset-y-0 left-[68%] w-1 bg-emerald-400/90 shadow-[0_0_8px_#10b981]" title="스위트 스팟 (최적 파워)"></div>
+                        </div>
+                    </div>
+
+                    <button id="shootBtn" onclick="shootBall()" class="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-slate-950 font-black text-base rounded-xl shadow-lg transition duration-150 transform active:scale-95 flex items-center justify-center space-x-2 border border-amber-300">
+                        <i class="fa-solid fa-basketball text-lg"></i>
+                        <span>슛 쏘기 (SHOOT!)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Game Over Result Modal -->
+    <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 rounded-3xl max-w-md w-full mx-4 p-6 shadow-2xl border border-slate-700 text-center space-y-5">
+            <div class="w-16 h-16 bg-orange-500/20 text-orange-400 border border-orange-500/40 rounded-2xl mx-auto flex items-center justify-center text-3xl font-black shadow-inner">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <div>
+                <span class="text-xs font-bold text-amber-400 bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">챌린지 완료</span>
+                <h3 class="text-2xl font-black text-white mt-2">농구 슛아웃 경기 종료!</h3>
+                <p class="text-xs text-slate-400 mt-1">고객님의 클린슛 성공으로 우대금리 혜택을 받으셨습니다.</p>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700/80 space-y-2">
+                <div class="flex justify-between text-xs text-slate-300">
+                    <span>최종 성공 슛</span>
+                    <strong class="text-emerald-400 text-sm" id="finalBasketsText">0 / 5 골</strong>
+                </div>
+                <div class="flex justify-between text-xs text-slate-300 border-t border-slate-700/60 pt-2">
+                    <span>획득한 대출 우대금리</span>
+                    <strong class="text-amber-400 text-base font-black" id="finalDiscountText">-0.00%p</strong>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 pt-2">
+                <button onclick="goToCalculatorWithDiscount()" class="w-full py-3 bg-mg-blue hover:bg-mg-lightblue text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm border border-blue-400/30">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>획득 금리 적용하여 대출 계산기 가기</span>
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="resetMatch()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> 다시 도전
+                    </button>
+                    <a href="soccer.html" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-xs border border-slate-700 inline-flex items-center justify-center">
+                        <i class="fa-solid fa-futbol mr-1"></i> 축구 미니게임
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        let canvas, ctx;
+        let powerGaugeValue = 50;
+        let powerDirection = 2.5;
+        let powerInterval = null;
+        let isShooting = false;
+
+        let totalShots = 5;
+        let currentShot = 0;
+        let basketsCount = 0;
+        let missesCount = 0;
+        let discountRate = 0.0;
+
+        let audioEnabled = true;
+        let audioCtx = null;
+
+        // Ball Physics
+        let ball = {
+            x: 0, y: 0, vx: 0, vy: 0,
+            radius: 14,
+            gravity: 0.38,
+            inAir: false
+        };
+
+        // Hoop & Backboard coordinates
+        let hoop = { x: 0, y: 0, rimRadius: 22, backboardX: 0, backboardY: 0 };
+
+        window.onload = function() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            startPowerGauge();
+            resetBallPosition();
+            requestAnimationFrame(gameLoop);
+        };
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            updateDimensions();
+            if (!ball.inAir) {
+                resetBallPosition();
+            }
+        }
+
+        function updateDimensions() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            hoop.x = w * 0.76;
+            hoop.y = h * 0.38;
+            hoop.backboardX = w * 0.82;
+            hoop.backboardY = h * 0.18;
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            icon.className = audioEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            if (type === 'shoot') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'swish') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.2);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'miss') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        function updateAngleText() {
+            const angleVal = document.getElementById('angleSlider').value;
+            document.getElementById('angleText').innerText = `${angleVal}°`;
+        }
+
+        function startPowerGauge() {
+            if (powerInterval) clearInterval(powerInterval);
+            powerInterval = setInterval(() => {
+                if (isShooting) return;
+                powerGaugeValue += powerDirection;
+                if (powerGaugeValue >= 100) {
+                    powerGaugeValue = 100;
+                    powerDirection = -3;
+                } else if (powerGaugeValue <= 0) {
+                    powerGaugeValue = 0;
+                    powerDirection = 3;
+                }
+                document.getElementById('powerGauge').style.width = `${powerGaugeValue}%`;
+                document.getElementById('powerValueText').innerText = `${Math.round(powerGaugeValue)}%`;
+            }, 25);
+        }
+
+        function resetBallPosition() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ball.x = w * 0.18;
+            ball.y = h * 0.72;
+            ball.vx = 0;
+            ball.vy = 0;
+            ball.inAir = false;
+        }
+
+        function shootBall() {
+            if (isShooting || currentShot >= totalShots) return;
+
+            isShooting = true;
+            currentShot++;
+            document.getElementById('shootBtn').disabled = true;
+            document.getElementById('shootBtn').classList.add('opacity-50');
+
+            playSound('shoot');
+
+            const angleDeg = parseFloat(document.getElementById('angleSlider').value);
+            const angleRad = (angleDeg * Math.PI) / 180;
+            
+            // Speed calculation based on power
+            const baseSpeed = 11.5 + (powerGaugeValue / 100) * 8.5;
+
+            ball.vx = Math.cos(angleRad) * baseSpeed;
+            ball.vy = -Math.sin(angleRad) * baseSpeed;
+            ball.inAir = true;
+        }
+
+        function gameLoop() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Draw Court & Gym Background
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+            bgGrad.addColorStop(0, '#020617');
+            bgGrad.addColorStop(0.55, '#0f172a');
+            bgGrad.addColorStop(0.56, '#b45309'); // Wood Floor
+            bgGrad.addColorStop(1, '#78350f');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Floor Lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, h * 0.56);
+            ctx.lineTo(w, h * 0.56);
+            ctx.stroke();
+
+            // 3-Point Arc
+            ctx.beginPath();
+            ctx.ellipse(hoop.x, h * 0.56, w * 0.55, h * 0.38, 0, 0, Math.PI);
+            ctx.stroke();
+
+            // 2. Draw Backboard & Hoop Rim
+            // Backboard Support Pole
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(hoop.backboardX, hoop.backboardY, 12, h * 0.56 - hoop.backboardY);
+
+            // Backboard Glass
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillRect(hoop.backboardX - 4, hoop.backboardY, 8, h * 0.28);
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(hoop.backboardX - 4, hoop.backboardY, 8, h * 0.28);
+
+            // Rim (Orange)
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(hoop.x - hoop.rimRadius, hoop.y);
+            ctx.lineTo(hoop.x + hoop.rimRadius, hoop.y);
+            ctx.stroke();
+
+            // Net
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(hoop.x - hoop.rimRadius + 2, hoop.y);
+            ctx.lineTo(hoop.x - hoop.rimRadius + 6, hoop.y + 24);
+            ctx.lineTo(hoop.x + hoop.rimRadius - 6, hoop.y + 24);
+            ctx.lineTo(hoop.x + hoop.rimRadius - 2, hoop.y);
+            ctx.stroke();
+
+            // 3. Trajectory Guideline when aiming
+            if (!ball.inAir && !isShooting) {
+                const angleDeg = parseFloat(document.getElementById('angleSlider').value);
+                const angleRad = (angleDeg * Math.PI) / 180;
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 6]);
+                ctx.beginPath();
+                ctx.moveTo(ball.x, ball.y);
+                ctx.lineTo(ball.x + Math.cos(angleRad) * 60, ball.y - Math.sin(angleRad) * 60);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 4. Update Physics & Ball Motion
+            if (ball.inAir) {
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                ball.vy += ball.gravity;
+
+                // Check basket collision or out of bounds
+                const distToRimCenter = Math.hypot(ball.x - hoop.x, ball.y - hoop.y);
+
+                // Basket Scoring Criteria
+                if (ball.vy > 0 && distToRimCenter < 18 && ball.y >= hoop.y - 10 && ball.y <= hoop.y + 15) {
+                    ball.inAir = false;
+                    evaluateResult(true);
+                } else if (ball.y > h || ball.x > w + 20) {
+                    ball.inAir = false;
+                    evaluateResult(false);
+                }
+            }
+
+            // Ball Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(ball.x, Math.min(h * 0.9, ball.y + 40), ball.radius, ball.radius * 0.3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 5. Draw Basketball
+            ctx.save();
+            ctx.translate(ball.x, ball.y);
+            ctx.fillStyle = '#ea580c'; // Basketball Orange
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Basketball Seam Lines
+            ctx.beginPath();
+            ctx.arc(0, 0, ball.radius * 0.7, -Math.PI * 0.4, Math.PI * 0.4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-ball.radius, 0);
+            ctx.lineTo(ball.radius, 0);
+            ctx.stroke();
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function evaluateResult(isSuccess) {
+            if (isSuccess) {
+                basketsCount++;
+                discountRate = Math.min(0.5, basketsCount * 0.1);
+                playSound('swish');
+                showOverlay('basketOverlay');
+            } else {
+                missesCount++;
+                playSound('miss');
+                showOverlay('missOverlay');
+            }
+
+            updateScoreboard();
+
+            setTimeout(() => {
+                hideOverlays();
+                if (currentShot >= totalShots) {
+                    showFinalModal();
+                } else {
+                    isShooting = false;
+                    resetBallPosition();
+                    document.getElementById('shootBtn').disabled = false;
+                    document.getElementById('shootBtn').classList.remove('opacity-50');
+                }
+            }, 1600);
+        }
+
+        function showOverlay(overlayId) {
+            const el = document.getElementById(overlayId);
+            el.classList.remove('opacity-0', 'pointer-events-none', 'scale-75');
+            el.classList.add('opacity-100', 'scale-100');
+        }
+
+        function hideOverlays() {
+            ['basketOverlay', 'missOverlay'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.remove('opacity-100', 'scale-100');
+                el.classList.add('opacity-0', 'pointer-events-none', 'scale-75');
+            });
+        }
+
+        function updateScoreboard() {
+            document.getElementById('shotsLeftDisplay').innerText = `${totalShots - currentShot} / ${totalShots}`;
+            document.getElementById('basketsDisplay').innerText = basketsCount;
+            document.getElementById('missesDisplay').innerText = missesCount;
+            document.getElementById('discountDisplay').innerText = `-${discountRate.toFixed(2)}%p`;
+        }
+
+        function showFinalModal() {
+            document.getElementById('finalBasketsText').innerText = `${basketsCount} / ${totalShots} 골`;
+            document.getElementById('finalDiscountText').innerText = `-${discountRate.toFixed(2)}%p`;
+
+            const modal = document.getElementById('resultModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function resetMatch() {
+            currentShot = 0;
+            basketsCount = 0;
+            missesCount = 0;
+            discountRate = 0.0;
+            isShooting = false;
+
+            updateScoreboard();
+            resetBallPosition();
+
+            document.getElementById('shootBtn').disabled = false;
+            document.getElementById('shootBtn').classList.remove('opacity-50');
+
+            const modal = document.getElementById('resultModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function goToCalculatorWithDiscount() {
+            window.location.href = `cal?discount=${discountRate.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
