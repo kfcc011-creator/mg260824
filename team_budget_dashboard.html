@@ -79,14 +79,12 @@
     }
 
     .spinner-small {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e0e7ff;
+      border-top-color: #4f46e5;
       border-radius: 50%;
       animation: spin .8s linear infinite;
-      display: inline-block;
-      vertical-align: middle;
     }
 
     @keyframes spin {
@@ -386,6 +384,10 @@
           </div>
 
           <div class="no-print flex flex-wrap gap-2">
+            <!-- AI 요약 버튼을 우측 상단 기능 버튼들 사이에 배치 -->
+            <button type="button" onclick="openAiSummary()" class="btn bg-indigo-600 text-white hover:bg-indigo-700">
+              ✨ AI 요약
+            </button>
             <button type="button" onclick="exportCsv()" class="btn border bg-white">
               CSV 내보내기
             </button>
@@ -416,24 +418,6 @@
             <p id="statCount" class="text-3xl font-extrabold mt-2">0건</p>
           </article>
         </div>
-
-        <!-- AI 스마트 요약 섹션 추가 -->
-        <article class="card p-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 no-print">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-            <div>
-              <h3 class="font-extrabold text-lg text-blue-900">🤖 AI 스마트 요약</h3>
-              <p class="text-sm text-blue-700 mt-1">현재 조회된 예산 데이터를 분석하여 핵심 인사이트를 제공합니다.</p>
-            </div>
-            <button id="btn-ai-summary" type="button" onclick="runAiSummary()" class="btn btn-primary whitespace-nowrap">
-              ✨ AI 요약 분석하기
-            </button>
-          </div>
-          
-          <div id="ai-summary-result" class="hidden mt-4 bg-white p-5 rounded-xl border border-blue-100 shadow-sm leading-relaxed">
-            <!-- 요약 결과가 여기에 렌더링 됩니다. -->
-          </div>
-        </article>
-        <!-- AI 섹션 끝 -->
 
         <div class="grid lg:grid-cols-2 gap-6">
           <article class="card p-6">
@@ -514,6 +498,7 @@
     </main>
   </div>
 
+  <!-- 각종 모달(팝업) 창들 -->
   <div id="loading" class="fixed inset-0 modal hidden items-center justify-center z-50">
     <div class="card p-6 flex items-center gap-4">
       <div class="spinner"></div>
@@ -547,6 +532,29 @@
 
       <button class="btn btn-primary w-full" type="submit">비밀번호 변경</button>
     </form>
+  </div>
+
+  <!-- AI 요약 전용 모달(팝업) -->
+  <div id="aiModal" class="fixed inset-0 modal hidden items-center justify-center z-50 p-4">
+    <div class="card p-6 max-w-md w-full relative bg-white">
+      <div class="flex justify-between items-start mb-2">
+        <h3 class="text-xl font-extrabold text-indigo-900 flex items-center gap-2">
+          🤖 AI 스마트 요약
+        </h3>
+        <button type="button" onclick="closeAiModal()" class="text-gray-400 hover:text-gray-700 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mb-5">현재 대시보드에 조회된 예산 데이터를 분석합니다.</p>
+      
+      <div id="aiModalContent" class="min-h-[150px] flex flex-col justify-center items-center">
+        <!-- JS 로직에 의해 결과 또는 로딩 애니메이션이 들어가는 공간 -->
+      </div>
+      
+      <button type="button" onclick="closeAiModal()" class="btn w-full mt-5 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+        닫기
+      </button>
+    </div>
   </div>
 
   <script>
@@ -1096,13 +1104,6 @@
       $("statTop").textContent = topCategory ? `${topCategory} · ${money(categoryMap[topCategory])}` : "-";
       $("statCount").textContent = `${entries.length}건`;
 
-      // AI 요약 화면 초기화 (탭 전환 또는 필터 변경 시)
-      const aiResultDiv = $("ai-summary-result");
-      const aiBtn = $("btn-ai-summary");
-      aiResultDiv.classList.add("hidden");
-      aiBtn.innerHTML = "✨ AI 요약 분석하기";
-      aiBtn.disabled = false;
-
       state.charts.forEach(chart => chart.destroy());
       state.charts = [];
 
@@ -1147,42 +1148,43 @@
     }
 
     // ==========================================
-    // 🤖 AI 스마트 요약 생성 로직
+    // 🤖 모달 형태의 AI 스마트 요약 로직
     // ==========================================
-    function runAiSummary() {
-      const btn = $("btn-ai-summary");
-      const resultDiv = $("ai-summary-result");
+    function openAiSummary() {
+      const modal = $("aiModal");
+      const content = $("aiModalContent");
       
-      // 현재 필터링된(조회된) 데이터를 가져옵니다.
+      // 모달 표시
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      
       const entries = filteredEntries(); 
-
       if (entries.length === 0) {
-        resultDiv.classList.remove("hidden");
-        resultDiv.innerHTML = '<p class="text-gray-500 font-medium">분석할 데이터가 없습니다. 먼저 내역을 입력하거나 검색 조건을 변경해 보세요.</p>';
+        content.innerHTML = '<p class="text-center text-gray-500 font-medium py-10">분석할 데이터가 없습니다.<br>먼저 내역을 입력하거나 검색 조건을 변경해 보세요.</p>';
         return;
       }
 
-      // 로딩 상태 표시
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-small mr-2"></span> 분석 중...';
-      
-      resultDiv.classList.remove("hidden");
-      resultDiv.innerHTML = '<p class="text-blue-600 font-bold animate-pulse">AI가 데이터를 분석하고 인사이트를 도출하고 있습니다...</p>';
+      // 로딩 애니메이션 표시
+      content.innerHTML = `
+        <div class="text-center py-10 w-full flex flex-col items-center">
+          <div class="spinner-small border-indigo-200 border-t-indigo-600 mb-4"></div>
+          <p class="text-indigo-600 font-bold animate-pulse">AI가 데이터를 분석하고 있습니다...</p>
+          <p class="text-xs text-indigo-400 mt-2">최다 지출 및 카테고리 상관관계를 찾는 중</p>
+        </div>
+      `;
 
-      // AI가 분석하는 느낌을 주기 위한 1.2초 딜레이
+      // 1.2초 후 분석 완료 결과 출력
       setTimeout(() => {
         let totalAmount = 0;
         const userTotals = {};
         const categoryTotals = {};
 
-        // 데이터 집계
         entries.forEach(entry => {
           totalAmount += entry.amount;
           userTotals[entry.memberName] = (userTotals[entry.memberName] || 0) + entry.amount;
           categoryTotals[entry.category] = (categoryTotals[entry.category] || 0) + entry.amount;
         });
 
-        // 최고 지출자 및 카테고리 추출
         const topUserArr = Object.entries(userTotals).sort((a, b) => b[1] - a[1])[0];
         const topCategoryArr = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
 
@@ -1194,28 +1196,39 @@
         const topCategoryAmount = topCategoryArr[1];
         const categoryPercentage = ((topCategoryAmount / totalAmount) * 100).toFixed(1);
 
-        // 결과 HTML 구성 (Tailwind 클래스 활용)
-        const resultHtml = `
-          <h4 class="font-extrabold text-lg mb-3 text-slate-800 border-b pb-2">📊 AI 분석 리포트 완료</h4>
-          <ul class="space-y-2 text-slate-700 mb-5">
-            <li>✅ 현재 조회된 내역을 기준으로 <strong>총 ${entries.length}건, ${money(totalAmount)}</strong>의 예산이 사용되었습니다.</li>
-            <li>🏆 가장 많은 예산을 사용한 팀원은 <strong>${topUserName}님 (${money(topUserAmount)})</strong>입니다. 이는 전체 지출의 <strong>약 ${userPercentage}%</strong>에 달합니다.</li>
-            <li>💰 항목별로는 <strong>'${topCategoryName}'</strong> 명목으로 가장 많은 금액<strong>(${money(topCategoryAmount)})</strong>이 지출되었으며, 전체의 <strong>${categoryPercentage}%</strong>를 차지합니다.</li>
-          </ul>
-          <div class="bg-indigo-50 p-4 rounded-lg text-indigo-900 text-sm flex gap-3">
+        content.innerHTML = `
+          <div class="bg-slate-50 w-full rounded-xl p-5 border border-slate-100 mt-2">
+            <ul class="space-y-4 text-slate-700 text-sm leading-relaxed">
+              <li class="flex items-start gap-3">
+                <span class="text-lg">✅</span> 
+                <span>현재 조회된 내역 기준으로 <strong>총 ${entries.length}건, ${money(totalAmount)}</strong>의 예산이 사용되었습니다.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-lg">🏆</span> 
+                <span>가장 많은 예산을 사용한 팀원은 <strong>${topUserName}님 (${money(topUserAmount)})</strong>으로, 전체 지출의 <strong>약 ${userPercentage}%</strong>를 차지하고 있습니다.</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="text-lg">💰</span> 
+                <span>가장 지출이 큰 항목은 <strong>'${topCategoryName}' (${money(topCategoryAmount)})</strong>이며, 전체 예산의 <strong>${categoryPercentage}%</strong> 비중입니다.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="mt-4 bg-indigo-50 w-full p-4 rounded-xl text-indigo-900 text-sm flex gap-3 border border-indigo-100">
             <span class="text-xl">💡</span>
             <div>
-              <strong class="block mb-1">AI 인사이트:</strong> 
-              ${topUserName}님의 지출 비중이 가장 높으며, 주요 지출 원인은 ${topCategoryName}입니다. 
-              해당 예산 사용이 계획된 범위 내에서 적절히 이루어졌는지 확인해 보시는 것을 권장합니다!
+              <strong class="block mb-1 text-indigo-800">AI 인사이트:</strong> 
+              ${topUserName}님의 지출 비중이 가장 높으며, 예산의 주요 지출처는 '${topCategoryName}'입니다. 
+              해당 항목의 사용 내역이 사전에 계획된 목적에 맞게 적절히 집행되었는지 검토해 보시는 것을 권장합니다.
             </div>
           </div>
         `;
-
-        resultDiv.innerHTML = resultHtml;
-        btn.disabled = false;
-        btn.innerHTML = '🔄 다시 요약하기';
       }, 1200);
+    }
+
+    function closeAiModal() {
+      const modal = $("aiModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
     }
     // ==========================================
 
