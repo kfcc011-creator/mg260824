@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="교육용 가상 사내 FAQ 데이터를 검색하고 분류별로 확인하는 웹앱"
+  />
+  <title>업무 FAQ 검색</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #182230;
+      --muted: #637083;
+      --line: #dce3ec;
+      --primary: #2859d6;
+      --primary-dark: #1f47ae;
+      --primary-soft: #eaf0ff;
+      --mark: #fff0a6;
+      --shadow: 0 12px 35px rgba(31, 50, 81, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at top left, rgba(40, 89, 214, 0.08), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        Pretendard,
+        "Noto Sans KR",
+        "Apple SD Gothic Neo",
+        "Malgun Gothic",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      line-height: 1.6;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      width: min(100% - 32px, 980px);
+      margin: 0 auto;
+      padding: 64px 0 80px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .eyebrow::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--primary);
+      content: "";
+      box-shadow: 0 0 0 5px var(--primary-soft);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.35rem);
+      line-height: 1.18;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-description {
+      max-width: 680px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .control-panel {
+      padding: 24px;
+      border: 1px solid rgba(220, 227, 236, 0.85);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .field-label,
+    .section-label {
+      display: block;
+      margin-bottom: 10px;
+      color: #344054;
+      font-size: 0.92rem;
+      font-weight: 800;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      top: 50%;
+      left: 16px;
+      width: 20px;
+      height: 20px;
+      color: #7b8797;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    #searchInput {
+      width: 100%;
+      min-height: 52px;
+      padding: 0 16px 0 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    #searchInput::placeholder {
+      color: #8a96a6;
+    }
+
+    #searchInput:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(40, 89, 214, 0.13);
+    }
+
+    .reset-button {
+      min-height: 52px;
+      padding: 0 20px;
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-md);
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 800;
+      white-space: nowrap;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .reset-button:hover {
+      border-color: var(--primary-dark);
+      background: var(--primary-dark);
+    }
+
+    .reset-button:active {
+      transform: translateY(1px);
+    }
+
+    .filter-area {
+      margin-top: 22px;
+    }
+
+    .filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .filter-button {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: #445166;
+      font-size: 0.92rem;
+      font-weight: 750;
+      transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+    }
+
+    .filter-button:hover {
+      border-color: #9eafe0;
+      background: #f6f8ff;
+      color: var(--primary-dark);
+    }
+
+    .filter-button.is-active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .filter-button:focus-visible,
+    .reset-button:focus-visible {
+      outline: 3px solid rgba(40, 89, 214, 0.24);
+      outline-offset: 2px;
+    }
+
+    .results-section {
+      margin-top: 34px;
+    }
+
+    .results-heading-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .results-title {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: -0.025em;
+    }
+
+    .result-count {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+      white-space: nowrap;
+    }
+
+    .result-count strong {
+      color: var(--primary-dark);
+      font-size: 1.05rem;
+    }
+
+    .results-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .faq-card {
+      position: relative;
+      padding: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      box-shadow: 0 7px 22px rgba(31, 50, 81, 0.045);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .faq-card::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 4px;
+      background: var(--primary);
+      content: "";
+      opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+
+    .faq-card:hover {
+      border-color: #c5d1e4;
+      box-shadow: 0 13px 30px rgba(31, 50, 81, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .faq-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+
+    .question-label {
+      color: #8590a0;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+
+    .faq-question {
+      margin: 0;
+      font-size: 1.08rem;
+      line-height: 1.55;
+      letter-spacing: -0.018em;
+    }
+
+    .answer-block {
+      margin-top: 15px;
+      padding: 16px 18px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-soft);
+    }
+
+    .answer-label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--primary-dark);
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+
+    .faq-answer {
+      margin: 0;
+      color: #455267;
+    }
+
+    mark {
+      padding: 0.04em 0.12em;
+      border-radius: 0.25em;
+      background: var(--mark);
+      color: inherit;
+      font-weight: 800;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      border: 1px dashed #c8d1dd;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.72);
+      text-align: center;
+    }
+
+    .empty-symbol {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 13px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      font-weight: 800;
+      place-items: center;
+    }
+
+    .empty-state h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .empty-state p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .data-note {
+      margin: 18px 2px 0;
+      color: #7a8697;
+      font-size: 0.83rem;
+      text-align: right;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 640px) {
+      .app-shell {
+        width: min(100% - 22px, 980px);
+        padding: 38px 0 56px;
+      }
+
+      .control-panel,
+      .faq-card {
+        padding: 20px;
+      }
+
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .reset-button {
+        width: 100%;
+      }
+
+      .results-heading-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .data-note {
+        text-align: left;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <p class="eyebrow">INTERNAL FAQ</p>
+      <h1>업무 FAQ 검색</h1>
+      <p class="hero-description">
+        질문이나 업무 키워드를 검색하고, 필요한 분류만 골라 등록된 답변을 확인하세요.
+      </p>
+    </header>
+
+    <section class="control-panel" aria-labelledby="searchSectionTitle">
+      <h2 id="searchSectionTitle" class="sr-only">FAQ 검색 및 분류</h2>
+
+      <label class="field-label" for="searchInput">검색창</label>
+      <div class="search-row">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="질문이나 키워드를 입력하세요."
+            autocomplete="off"
+            aria-describedby="searchGuide"
+          />
+          <span id="searchGuide" class="sr-only">
+            질문, 답변, 분류에 포함된 단어를 검색합니다.
+          </span>
+        </div>
+        <button id="resetButton" class="reset-button" type="button">전체보기</button>
+      </div>
+
+      <div class="filter-area">
+        <span class="section-label">분류</span>
+        <div class="filter-buttons" role="group" aria-label="FAQ 분류 필터">
+          <button class="filter-button is-active" type="button" data-category="전체" aria-pressed="true">전체</button>
+          <button class="filter-button" type="button" data-category="교육" aria-pressed="false">교육</button>
+          <button class="filter-button" type="button" data-category="문서" aria-pressed="false">문서</button>
+          <button class="filter-button" type="button" data-category="IT" aria-pressed="false">IT</button>
+          <button class="filter-button" type="button" data-category="보안" aria-pressed="false">보안</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-section" aria-labelledby="resultsTitle">
+      <div class="results-heading-row">
+        <h2 id="resultsTitle" class="results-title">검색 결과</h2>
+        <p id="resultCount" class="result-count" aria-live="polite"></p>
+      </div>
+      <div id="resultsList" class="results-list" aria-live="polite"></div>
+      <p class="data-note">표시되는 답변은 등록된 FAQ 데이터에 한합니다.</p>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    // 첨부된 교육용 가상 사내 FAQ JSON의 내용만 사용합니다.
+    const faqData = Object.freeze([
+      Object.freeze({
+        category: "교육",
+        question: "교육 신청은 어디에서 하나요?",
+        answer: "교육 포털의 과정 검색 후 신청 메뉴를 사용합니다."
+      }),
+      Object.freeze({
+        category: "교육",
+        question: "신청한 교육을 취소하려면 어떻게 하나요?",
+        answer: "신청내역에서 취소 가능 여부를 확인합니다."
+      }),
+      Object.freeze({
+        category: "문서",
+        question: "주간 업무보고에는 무엇을 넣어야 하나요?",
+        answer: "주요 실적, 이슈, 다음 주 계획을 중심으로 작성합니다."
+      }),
+      Object.freeze({
+        category: "IT",
+        question: "사내 시스템 접속이 되지 않습니다.",
+        answer: "네트워크, 브라우저, 계정 상태를 순서대로 확인합니다."
+      }),
+      Object.freeze({
+        category: "보안",
+        question: "ChatGPT에 내부 업무자료를 넣어도 되나요?",
+        answer: "교육에서는 합성자료를 사용하고, 실제 자료는 조직의 보안 및 AI 사용 기준을 먼저 확인합니다."
+      })
+    ]);
+
+    const searchInput = document.getElementById("searchInput");
+    const resetButton = document.getElementById("resetButton");
+    const filterButtons = [...document.querySelectorAll(".filter-button")];
+    const resultCount = document.getElementById("resultCount");
+    const resultsList = document.getElementById("resultsList");
+
+    let activeCategory = "전체";
+
+    function normalizeText(value) {
+      return value.trim().toLocaleLowerCase("ko-KR");
+    }
+
+    function getSearchTokens() {
+      return [...new Set(normalizeText(searchInput.value).split(/\s+/).filter(Boolean))];
+    }
+
+    function matchesSearch(item, tokens) {
+      if (tokens.length === 0) return true;
+
+      const searchableText = normalizeText(
+        `${item.category} ${item.question} ${item.answer}`
+      );
+
+      return tokens.every((token) => searchableText.includes(token));
+    }
+
+    function getFilteredFaqs(tokens) {
+      return faqData.filter((item) => {
+        const categoryMatches =
+          activeCategory === "전체" || item.category === activeCategory;
+
+        return categoryMatches && matchesSearch(item, tokens);
+      });
+    }
+
+    function escapeRegExp(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function createHighlightedFragment(text, tokens) {
+      const fragment = document.createDocumentFragment();
+
+      if (tokens.length === 0) {
+        fragment.append(document.createTextNode(text));
+        return fragment;
+      }
+
+      const orderedTokens = [...tokens].sort((a, b) => b.length - a.length);
+      const pattern = new RegExp(`(${orderedTokens.map(escapeRegExp).join("|")})`, "gi");
+      const normalizedTokens = new Set(
+        orderedTokens.map((token) => token.toLocaleLowerCase("ko-KR"))
+      );
+
+      text.split(pattern).forEach((part) => {
+        const normalizedPart = part.toLocaleLowerCase("ko-KR");
+
+        if (normalizedTokens.has(normalizedPart)) {
+          const mark = document.createElement("mark");
+          mark.textContent = part;
+          fragment.append(mark);
+        } else {
+          fragment.append(document.createTextNode(part));
+        }
+      });
+
+      return fragment;
+    }
+
+    function createFaqCard(item, tokens) {
+      const article = document.createElement("article");
+      article.className = "faq-card";
+
+      const topline = document.createElement("div");
+      topline.className = "card-topline";
+
+      const category = document.createElement("span");
+      category.className = "category-badge";
+      category.append(createHighlightedFragment(item.category, tokens));
+
+      const questionLabel = document.createElement("span");
+      questionLabel.className = "question-label";
+      questionLabel.textContent = "질문";
+
+      topline.append(category, questionLabel);
+
+      const question = document.createElement("h3");
+      question.className = "faq-question";
+      question.append(createHighlightedFragment(item.question, tokens));
+
+      const answerBlock = document.createElement("div");
+      answerBlock.className = "answer-block";
+
+      const answerLabel = document.createElement("span");
+      answerLabel.className = "answer-label";
+      answerLabel.textContent = "답변";
+
+      const answer = document.createElement("p");
+      answer.className = "faq-answer";
+      answer.append(createHighlightedFragment(item.answer, tokens));
+
+      answerBlock.append(answerLabel, answer);
+      article.append(topline, question, answerBlock);
+
+      return article;
+    }
+
+    function createEmptyState() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "empty-state";
+
+      const symbol = document.createElement("div");
+      symbol.className = "empty-symbol";
+      symbol.setAttribute("aria-hidden", "true");
+      symbol.textContent = "?";
+
+      const title = document.createElement("h3");
+      title.textContent = "일치하는 FAQ가 없습니다.";
+
+      const description = document.createElement("p");
+      description.textContent = "다른 키워드를 입력하거나 분류를 변경해 보세요.";
+
+      wrapper.append(symbol, title, description);
+      return wrapper;
+    }
+
+    function updateFilterButtons() {
+      filterButtons.forEach((button) => {
+        const isActive = button.dataset.category === activeCategory;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+    }
+
+    function render() {
+      const tokens = getSearchTokens();
+      const filteredFaqs = getFilteredFaqs(tokens);
+
+      resultsList.replaceChildren();
+
+      if (filteredFaqs.length === 0) {
+        resultsList.append(createEmptyState());
+      } else {
+        const fragment = document.createDocumentFragment();
+        filteredFaqs.forEach((item) => {
+          fragment.append(createFaqCard(item, tokens));
+        });
+        resultsList.append(fragment);
+      }
+
+      resultCount.innerHTML = `총 <strong>${filteredFaqs.length}</strong>건`;
+      updateFilterButtons();
+    }
+
+    searchInput.addEventListener("input", render);
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeCategory = button.dataset.category;
+        render();
+      });
+    });
+
+    resetButton.addEventListener("click", () => {
+      searchInput.value = "";
+      activeCategory = "전체";
+      render();
+      searchInput.focus();
+    });
+
+    render();
+  </script>
+</body>
+</html>
