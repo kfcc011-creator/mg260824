@@ -78,6 +78,17 @@
       animation: spin .8s linear infinite;
     }
 
+    .spinner-small {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -366,6 +377,7 @@
         </div>
       </section>
 
+      <!-- 대시보드 탭 -->
       <section id="tab-dashboard" class="tab-panel hidden space-y-6">
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-3">
           <div>
@@ -374,41 +386,17 @@
           </div>
 
           <div class="no-print flex flex-wrap gap-2">
-            <button
-              type="button"
-              onclick="exportCsv()"
-              class="btn border bg-white"
-            >
+            <button type="button" onclick="exportCsv()" class="btn border bg-white">
               CSV 내보내기
             </button>
-
-            <button
-              id="backupButton"
-              type="button"
-              onclick="exportBackup()"
-              class="btn border bg-white hidden"
-            >
+            <button id="backupButton" type="button" onclick="exportBackup()" class="btn border bg-white hidden">
               백업 저장
             </button>
-
-            <label
-              id="restoreLabel"
-              class="btn border bg-white hidden cursor-pointer"
-            >
+            <label id="restoreLabel" class="btn border bg-white hidden cursor-pointer">
               백업 복원
-              <input
-                id="restoreInput"
-                type="file"
-                accept="application/json"
-                class="hidden"
-              >
+              <input id="restoreInput" type="file" accept="application/json" class="hidden">
             </label>
-
-            <button
-              type="button"
-              onclick="window.print()"
-              class="btn border bg-white"
-            >
+            <button type="button" onclick="window.print()" class="btn border bg-white">
               인쇄
             </button>
           </div>
@@ -419,17 +407,33 @@
             <p class="text-sm text-gray-500">조회 합계</p>
             <p id="statTotal" class="text-3xl font-extrabold mt-2">0원</p>
           </article>
-
           <article class="card p-5">
             <p class="text-sm text-gray-500">최대 지출 항목</p>
             <p id="statTop" class="text-xl font-extrabold mt-2">-</p>
           </article>
-
           <article class="card p-5">
             <p class="text-sm text-gray-500">내역 건수</p>
             <p id="statCount" class="text-3xl font-extrabold mt-2">0건</p>
           </article>
         </div>
+
+        <!-- AI 스마트 요약 섹션 추가 -->
+        <article class="card p-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 no-print">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+            <div>
+              <h3 class="font-extrabold text-lg text-blue-900">🤖 AI 스마트 요약</h3>
+              <p class="text-sm text-blue-700 mt-1">현재 조회된 예산 데이터를 분석하여 핵심 인사이트를 제공합니다.</p>
+            </div>
+            <button id="btn-ai-summary" type="button" onclick="runAiSummary()" class="btn btn-primary whitespace-nowrap">
+              ✨ AI 요약 분석하기
+            </button>
+          </div>
+          
+          <div id="ai-summary-result" class="hidden mt-4 bg-white p-5 rounded-xl border border-blue-100 shadow-sm leading-relaxed">
+            <!-- 요약 결과가 여기에 렌더링 됩니다. -->
+          </div>
+        </article>
+        <!-- AI 섹션 끝 -->
 
         <div class="grid lg:grid-cols-2 gap-6">
           <article class="card p-6">
@@ -460,7 +464,6 @@
                 <th class="p-3 text-right">합계</th>
               </tr>
             </thead>
-
             <tbody id="summaryBody"></tbody>
           </table>
         </article>
@@ -511,72 +514,38 @@
     </main>
   </div>
 
-  <div
-    id="loading"
-    class="fixed inset-0 modal hidden items-center justify-center z-50"
-  >
+  <div id="loading" class="fixed inset-0 modal hidden items-center justify-center z-50">
     <div class="card p-6 flex items-center gap-4">
       <div class="spinner"></div>
       <p id="loadingText" class="font-bold">처리 중...</p>
     </div>
   </div>
 
-  <div
-    id="dialog"
-    class="fixed inset-0 modal hidden items-center justify-center z-50 p-4"
-  >
+  <div id="dialog" class="fixed inset-0 modal hidden items-center justify-center z-50 p-4">
     <div class="card p-6 max-w-md w-full">
       <h3 id="dialogTitle" class="text-xl font-extrabold"></h3>
-      <p
-        id="dialogMessage"
-        class="text-gray-600 whitespace-pre-line mt-3"
-      ></p>
-
-      <button
-        type="button"
-        onclick="closeDialog()"
-        class="btn btn-primary w-full mt-5"
-      >
+      <p id="dialogMessage" class="text-gray-600 whitespace-pre-line mt-3"></p>
+      <button type="button" onclick="closeDialog()" class="btn btn-primary w-full mt-5">
         확인
       </button>
     </div>
   </div>
 
-  <div
-    id="passwordModal"
-    class="fixed inset-0 modal hidden items-center justify-center z-50 p-4"
-  >
+  <div id="passwordModal" class="fixed inset-0 modal hidden items-center justify-center z-50 p-4">
     <form id="passwordForm" class="card p-6 max-w-md w-full space-y-4">
       <div>
         <h3 class="text-xl font-extrabold">비밀번호 변경</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          최초 로그인 시 새 비밀번호 설정이 필요합니다.
-        </p>
+        <p class="text-sm text-gray-500 mt-1">최초 로그인 시 새 비밀번호 설정이 필요합니다.</p>
       </div>
 
-      <input
-        id="currentPassword"
-        type="password"
-        class="field"
-        placeholder="현재 비밀번호"
-        required
-      >
-
-      <input
-        id="newPassword"
-        type="password"
-        class="field"
-        placeholder="새 비밀번호"
-        required
-      >
+      <input id="currentPassword" type="password" class="field" placeholder="현재 비밀번호" required>
+      <input id="newPassword" type="password" class="field" placeholder="새 비밀번호" required>
 
       <p class="text-xs text-gray-500">
         10자 이상, 대·소문자, 숫자, 특수문자를 모두 포함하세요.
       </p>
 
-      <button class="btn btn-primary w-full" type="submit">
-        비밀번호 변경
-      </button>
+      <button class="btn btn-primary w-full" type="submit">비밀번호 변경</button>
     </form>
   </div>
 
@@ -603,8 +572,7 @@
 
     const $ = id => document.getElementById(id);
 
-    const money = value =>
-      Number(value || 0).toLocaleString("ko-KR") + "원";
+    const money = value => Number(value || 0).toLocaleString("ko-KR") + "원";
 
     const readStore = (key, fallback = []) => {
       try {
@@ -623,41 +591,23 @@
       if (crypto.randomUUID) {
         return crypto.randomUUID();
       }
-
-      return (
-        Date.now().toString(36) +
-        Math.random().toString(36).slice(2)
-      );
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
     };
 
-    const normalizeId = value =>
-      String(value || "").trim().toLowerCase();
+    const normalizeId = value => String(value || "").trim().toLowerCase();
 
     function validatePassword(password) {
       password = String(password || "");
-
-      const valid =
-        password.length >= 10 &&
-        /[A-Z]/.test(password) &&
-        /[a-z]/.test(password) &&
-        /\d/.test(password) &&
-        /[^A-Za-z0-9]/.test(password);
-
+      const valid = password.length >= 10 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
       if (!valid) {
-        throw new Error(
-          "비밀번호는 10자 이상이며 대문자·소문자·숫자·특수문자를 포함해야 합니다."
-        );
+        throw new Error("비밀번호는 10자 이상이며 대문자·소문자·숫자·특수문자를 포함해야 합니다.");
       }
     }
 
     async function hashPassword(password, salt) {
       const bytes = new TextEncoder().encode(`${salt}:${password}`);
       const hash = await crypto.subtle.digest("SHA-256", bytes);
-
-      return Array.from(
-        new Uint8Array(hash),
-        byte => byte.toString(16).padStart(2, "0")
-      ).join("");
+      return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, "0")).join("");
     }
 
     function publicUser(user) {
@@ -672,153 +622,68 @@
 
     function audit(userId, action, targetId = "", detail = "") {
       const logs = readStore(STORAGE.audit);
-
-      logs.unshift({
-        timestamp: new Date().toISOString(),
-        userId,
-        action,
-        targetId,
-        detail
-      });
-
+      logs.unshift({ timestamp: new Date().toISOString(), userId, action, targetId, detail });
       writeStore(STORAGE.audit, logs.slice(0, 2000));
     }
 
     function auth(token) {
       const session = readStore(STORAGE.session, null);
-
-      if (
-        !session ||
-        session.token !== token ||
-        session.expiresAt < Date.now()
-      ) {
+      if (!session || session.token !== token || session.expiresAt < Date.now()) {
         throw new Error("세션이 만료되었습니다. 다시 로그인해 주세요.");
       }
-
-      const user = readStore(STORAGE.users).find(
-        item =>
-          item.userId === session.userId &&
-          item.active === true
-      );
-
+      const user = readStore(STORAGE.users).find(item => item.userId === session.userId && item.active === true);
       if (!user) {
         throw new Error("사용할 수 없는 계정입니다.");
       }
-
       session.expiresAt = Date.now() + 6 * 60 * 60 * 1000;
       writeStore(STORAGE.session, session);
-
       return user;
     }
 
     const LocalApi = {
-      hasUsers() {
-        return readStore(STORAGE.users).length > 0;
-      },
+      hasUsers() { return readStore(STORAGE.users).length > 0; },
 
       async createInitialAdmin(name, password) {
-        if (this.hasUsers()) {
-          throw new Error("이미 사용자가 존재합니다.");
-        }
-
+        if (this.hasUsers()) throw new Error("이미 사용자가 존재합니다.");
         name = String(name || "").trim();
-
-        if (!name) {
-          throw new Error("관리자 이름을 입력해 주세요.");
-        }
-
+        if (!name) throw new Error("관리자 이름을 입력해 주세요.");
         validatePassword(password);
-
         const salt = randomId();
-
-        const user = {
-          userId: "admin",
-          name,
-          role: "admin",
-          passwordHash: await hashPassword(password, salt),
-          salt,
-          active: true,
-          mustChangePassword: false,
-          createdAt: new Date().toISOString()
-        };
-
+        const user = { userId: "admin", name, role: "admin", passwordHash: await hashPassword(password, salt), salt, active: true, mustChangePassword: false, createdAt: new Date().toISOString() };
         writeStore(STORAGE.users, [user]);
         audit("admin", "INITIAL_ADMIN_CREATED", "admin");
-
         return { success: true };
       },
 
       async login(userId, password) {
         userId = normalizeId(userId);
-
         const locks = readStore(STORAGE.loginLock, {});
-        const lock = locks[userId] || {
-          count: 0,
-          until: 0
-        };
-
-        if (lock.until > Date.now()) {
-          throw new Error(
-            "로그인 시도가 잠시 제한되었습니다. 10분 뒤 다시 시도해 주세요."
-          );
-        }
-
-        const user = readStore(STORAGE.users).find(
-          item =>
-            item.userId === userId &&
-            item.active === true
-        );
-
-        const valid =
-          user &&
-          user.passwordHash ===
-            await hashPassword(String(password || ""), user.salt);
-
+        const lock = locks[userId] || { count: 0, until: 0 };
+        if (lock.until > Date.now()) throw new Error("로그인 시도가 잠시 제한되었습니다. 10분 뒤 다시 시도해 주세요.");
+        
+        const user = readStore(STORAGE.users).find(item => item.userId === userId && item.active === true);
+        const valid = user && user.passwordHash === await hashPassword(String(password || ""), user.salt);
+        
         if (!valid) {
           lock.count += 1;
-
-          if (lock.count >= 5) {
-            lock.until = Date.now() + 10 * 60 * 1000;
-            lock.count = 0;
-          }
-
+          if (lock.count >= 5) { lock.until = Date.now() + 10 * 60 * 1000; lock.count = 0; }
           locks[userId] = lock;
           writeStore(STORAGE.loginLock, locks);
-
           audit(userId || "unknown", "LOGIN_FAILED");
-
-          throw new Error(
-            "아이디 또는 비밀번호가 올바르지 않습니다."
-          );
+          throw new Error("아이디 또는 비밀번호가 올바르지 않습니다.");
         }
-
+        
         delete locks[userId];
         writeStore(STORAGE.loginLock, locks);
-
         const token = randomId() + randomId();
-
-        writeStore(STORAGE.session, {
-          token,
-          userId,
-          expiresAt: Date.now() + 6 * 60 * 60 * 1000
-        });
-
+        writeStore(STORAGE.session, { token, userId, expiresAt: Date.now() + 6 * 60 * 60 * 1000 });
         audit(userId, "LOGIN");
-
-        return {
-          token,
-          user: publicUser(user)
-        };
+        return { token, user: publicUser(user) };
       },
 
       async logout(token) {
-        try {
-          const user = auth(token);
-          audit(user.userId, "LOGOUT");
-        } catch {}
-
+        try { const user = auth(token); audit(user.userId, "LOGOUT"); } catch {}
         localStorage.removeItem(STORAGE.session);
-
         return { success: true };
       },
 
@@ -826,384 +691,151 @@
         const user = auth(token);
         const users = readStore(STORAGE.users);
         const allEntries = readStore(STORAGE.entries);
-
         return {
           user: publicUser(user),
-
-          entries: allEntries
-            .filter(
-              entry =>
-                user.role === "admin" ||
-                entry.memberId === user.userId
-            )
-            .sort((a, b) =>
-              String(b.createdAt).localeCompare(String(a.createdAt))
-            ),
-
-          members: users
-            .filter(item => item.active)
-            .map(publicUser),
-
-          users:
-            user.role === "admin"
-              ? users.map(publicUser)
-              : [],
-
+          entries: allEntries.filter(entry => user.role === "admin" || entry.memberId === user.userId).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+          members: users.filter(item => item.active).map(publicUser),
+          users: user.role === "admin" ? users.map(publicUser) : [],
           categories: CATEGORIES
         };
       },
 
       async changePassword(token, currentPassword, newPassword) {
         const current = auth(token);
-
         validatePassword(newPassword);
-
         const users = readStore(STORAGE.users);
-        const user = users.find(
-          item => item.userId === current.userId
-        );
-
-        const currentHash = await hashPassword(
-          String(currentPassword || ""),
-          user.salt
-        );
-
-        if (user.passwordHash !== currentHash) {
-          throw new Error("현재 비밀번호가 올바르지 않습니다.");
-        }
-
+        const user = users.find(item => item.userId === current.userId);
+        const currentHash = await hashPassword(String(currentPassword || ""), user.salt);
+        if (user.passwordHash !== currentHash) throw new Error("현재 비밀번호가 올바르지 않습니다.");
+        
         user.salt = randomId();
-        user.passwordHash = await hashPassword(
-          newPassword,
-          user.salt
-        );
+        user.passwordHash = await hashPassword(newPassword, user.salt);
         user.mustChangePassword = false;
-
         writeStore(STORAGE.users, users);
         audit(user.userId, "PASSWORD_CHANGED");
-
         return { success: true };
       },
 
       async addEntry(token, payload) {
         const current = auth(token);
         const users = readStore(STORAGE.users);
-
-        const memberId =
-          current.role === "admin"
-            ? normalizeId(payload.memberId)
-            : current.userId;
-
-        const member = users.find(
-          item =>
-            item.userId === memberId &&
-            item.active === true
-        );
-
+        const memberId = current.role === "admin" ? normalizeId(payload.memberId) : current.userId;
+        const member = users.find(item => item.userId === memberId && item.active === true);
         const amount = Number(payload.amount);
-
-        if (!member) {
-          throw new Error("유효한 팀원을 선택해 주세요.");
-        }
-
-        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(payload.month)) {
-          throw new Error("올바른 연월을 선택해 주세요.");
-        }
-
-        if (!CATEGORIES.includes(payload.category)) {
-          throw new Error("허용되지 않은 예산 항목입니다.");
-        }
-
-        if (
-          !Number.isSafeInteger(amount) ||
-          amount <= 0 ||
-          amount > 1_000_000_000_000
-        ) {
-          throw new Error(
-            "금액은 1원 이상 1조 원 이하의 정수여야 합니다."
-          );
-        }
-
+        
+        if (!member) throw new Error("유효한 팀원을 선택해 주세요.");
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(payload.month)) throw new Error("올바른 연월을 선택해 주세요.");
+        if (!CATEGORIES.includes(payload.category)) throw new Error("허용되지 않은 예산 항목입니다.");
+        if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 1_000_000_000_000) throw new Error("금액은 1원 이상 1조 원 이하의 정수여야 합니다.");
+        
         const entries = readStore(STORAGE.entries);
         const id = randomId();
-
-        entries.unshift({
-          id,
-          memberId,
-          memberName: member.name,
-          month: payload.month,
-          category: payload.category,
-          amount,
-          memo: String(payload.memo || "")
-            .trim()
-            .slice(0, 200),
-          createdAt: new Date().toISOString(),
-          createdBy: current.userId
-        });
-
+        entries.unshift({ id, memberId, memberName: member.name, month: payload.month, category: payload.category, amount, memo: String(payload.memo || "").trim().slice(0, 200), createdAt: new Date().toISOString(), createdBy: current.userId });
         writeStore(STORAGE.entries, entries);
         audit(current.userId, "ENTRY_CREATED", id);
-
-        return {
-          success: true,
-          id
-        };
+        return { success: true, id };
       },
 
       async deleteEntry(token, id) {
         const current = auth(token);
         const entries = readStore(STORAGE.entries);
         const entry = entries.find(item => item.id === id);
-
-        if (!entry) {
-          throw new Error("삭제할 내역을 찾을 수 없습니다.");
-        }
-
-        if (
-          current.role !== "admin" &&
-          entry.memberId !== current.userId
-        ) {
-          throw new Error(
-            "본인이 등록한 내역만 삭제할 수 있습니다."
-          );
-        }
-
-        writeStore(
-          STORAGE.entries,
-          entries.filter(item => item.id !== id)
-        );
-
+        if (!entry) throw new Error("삭제할 내역을 찾을 수 없습니다.");
+        if (current.role !== "admin" && entry.memberId !== current.userId) throw new Error("본인이 등록한 내역만 삭제할 수 있습니다.");
+        writeStore(STORAGE.entries, entries.filter(item => item.id !== id));
         audit(current.userId, "ENTRY_DELETED", id);
-
         return { success: true };
       },
 
       async clearAllEntries(token, confirmation) {
         const current = auth(token);
-
-        if (current.role !== "admin") {
-          throw new Error("관리자 권한이 필요합니다.");
-        }
-
-        if (confirmation !== "전체삭제") {
-          throw new Error("확인 문구가 일치하지 않습니다.");
-        }
-
+        if (current.role !== "admin") throw new Error("관리자 권한이 필요합니다.");
+        if (confirmation !== "전체삭제") throw new Error("확인 문구가 일치하지 않습니다.");
         const count = readStore(STORAGE.entries).length;
-
         writeStore(STORAGE.entries, []);
-        audit(
-          current.userId,
-          "ALL_ENTRIES_CLEARED",
-          "",
-          String(count)
-        );
-
-        return {
-          success: true,
-          deletedCount: count
-        };
+        audit(current.userId, "ALL_ENTRIES_CLEARED", "", String(count));
+        return { success: true, deletedCount: count };
       },
 
       async createUser(token, payload) {
         const current = auth(token);
-
-        if (current.role !== "admin") {
-          throw new Error("관리자 권한이 필요합니다.");
-        }
-
+        if (current.role !== "admin") throw new Error("관리자 권한이 필요합니다.");
         const users = readStore(STORAGE.users);
         const userId = normalizeId(payload.userId);
         const name = String(payload.name || "").trim();
         const role = String(payload.role || "user");
-
-        if (!/^[a-z0-9._-]{3,40}$/.test(userId)) {
-          throw new Error(
-            "아이디는 영문 소문자·숫자·._- 조합 3~40자로 입력해 주세요."
-          );
-        }
-
-        if (!name) {
-          throw new Error("이름을 입력해 주세요.");
-        }
-
-        if (!["admin", "user"].includes(role)) {
-          throw new Error("허용되지 않은 권한입니다.");
-        }
-
-        if (users.some(user => user.userId === userId)) {
-          throw new Error("이미 사용 중인 아이디입니다.");
-        }
-
-        const temporaryPassword =
-          "T!" +
-          randomId().replace(/-/g, "").slice(0, 10) +
-          "a9";
-
+        
+        if (!/^[a-z0-9._-]{3,40}$/.test(userId)) throw new Error("아이디는 영문 소문자·숫자·._- 조합 3~40자로 입력해 주세요.");
+        if (!name) throw new Error("이름을 입력해 주세요.");
+        if (!["admin", "user"].includes(role)) throw new Error("허용되지 않은 권한입니다.");
+        if (users.some(user => user.userId === userId)) throw new Error("이미 사용 중인 아이디입니다.");
+        
+        const temporaryPassword = "T!" + randomId().replace(/-/g, "").slice(0, 10) + "a9";
         const salt = randomId();
-
-        users.push({
-          userId,
-          name,
-          role,
-          passwordHash: await hashPassword(
-            temporaryPassword,
-            salt
-          ),
-          salt,
-          active: true,
-          mustChangePassword: true,
-          createdAt: new Date().toISOString()
-        });
-
+        users.push({ userId, name, role, passwordHash: await hashPassword(temporaryPassword, salt), salt, active: true, mustChangePassword: true, createdAt: new Date().toISOString() });
         writeStore(STORAGE.users, users);
         audit(current.userId, "USER_CREATED", userId);
-
-        return {
-          success: true,
-          userId,
-          temporaryPassword
-        };
+        return { success: true, userId, temporaryPassword };
       },
 
       async updateUser(token, payload) {
         const current = auth(token);
-
-        if (current.role !== "admin") {
-          throw new Error("관리자 권한이 필요합니다.");
-        }
-
+        if (current.role !== "admin") throw new Error("관리자 권한이 필요합니다.");
         const users = readStore(STORAGE.users);
-        const user = users.find(
-          item =>
-            item.userId === normalizeId(payload.userId)
-        );
-
+        const user = users.find(item => item.userId === normalizeId(payload.userId));
         const name = String(payload.name || "").trim();
         const role = String(payload.role);
-
-        if (!user) {
-          throw new Error("수정할 팀원을 찾을 수 없습니다.");
-        }
-
-        if (!name) {
-          throw new Error("이름을 입력해 주세요.");
-        }
-
-        if (!["admin", "user"].includes(role)) {
-          throw new Error("허용되지 않은 권한입니다.");
-        }
-
-        if (
-          user.userId === current.userId &&
-          role !== "admin"
-        ) {
-          throw new Error(
-            "현재 로그인한 관리자의 권한은 변경할 수 없습니다."
-          );
-        }
-
+        
+        if (!user) throw new Error("수정할 팀원을 찾을 수 없습니다.");
+        if (!name) throw new Error("이름을 입력해 주세요.");
+        if (!["admin", "user"].includes(role)) throw new Error("허용되지 않은 권한입니다.");
+        if (user.userId === current.userId && role !== "admin") throw new Error("현재 로그인한 관리자의 권한은 변경할 수 없습니다.");
+        
         user.name = name;
         user.role = role;
-
         writeStore(STORAGE.users, users);
-
+        
         const entries = readStore(STORAGE.entries);
-
-        entries.forEach(entry => {
-          if (entry.memberId === user.userId) {
-            entry.memberName = name;
-          }
-        });
-
+        entries.forEach(entry => { if (entry.memberId === user.userId) entry.memberName = name; });
         writeStore(STORAGE.entries, entries);
         audit(current.userId, "USER_UPDATED", user.userId);
-
         return { success: true };
       },
 
       async setUserActive(token, userId, active) {
         const current = auth(token);
-
-        if (current.role !== "admin") {
-          throw new Error("관리자 권한이 필요합니다.");
-        }
-
+        if (current.role !== "admin") throw new Error("관리자 권한이 필요합니다.");
         userId = normalizeId(userId);
-
-        if (userId === current.userId && !active) {
-          throw new Error(
-            "현재 로그인한 관리자 계정은 비활성화할 수 없습니다."
-          );
-        }
-
+        if (userId === current.userId && !active) throw new Error("현재 로그인한 관리자 계정은 비활성화할 수 없습니다.");
         const users = readStore(STORAGE.users);
-        const user = users.find(
-          item => item.userId === userId
-        );
-
-        if (!user) {
-          throw new Error("사용자를 찾을 수 없습니다.");
-        }
-
+        const user = users.find(item => item.userId === userId);
+        if (!user) throw new Error("사용자를 찾을 수 없습니다.");
+        
         user.active = active === true;
-
         writeStore(STORAGE.users, users);
-
-        audit(
-          current.userId,
-          user.active
-            ? "USER_ACTIVATED"
-            : "USER_DEACTIVATED",
-          userId
-        );
-
+        audit(current.userId, user.active ? "USER_ACTIVATED" : "USER_DEACTIVATED", userId);
         return { success: true };
       },
 
       async resetUserPassword(token, userId) {
         const current = auth(token);
-
-        if (current.role !== "admin") {
-          throw new Error("관리자 권한이 필요합니다.");
-        }
-
+        if (current.role !== "admin") throw new Error("관리자 권한이 필요합니다.");
         const users = readStore(STORAGE.users);
-        const user = users.find(
-          item => item.userId === normalizeId(userId)
-        );
-
-        if (!user) {
-          throw new Error("사용자를 찾을 수 없습니다.");
-        }
-
-        const temporaryPassword =
-          "T!" +
-          randomId().replace(/-/g, "").slice(0, 10) +
-          "a9";
-
+        const user = users.find(item => item.userId === normalizeId(userId));
+        if (!user) throw new Error("사용자를 찾을 수 없습니다.");
+        
+        const temporaryPassword = "T!" + randomId().replace(/-/g, "").slice(0, 10) + "a9";
         user.salt = randomId();
-        user.passwordHash = await hashPassword(
-          temporaryPassword,
-          user.salt
-        );
+        user.passwordHash = await hashPassword(temporaryPassword, user.salt);
         user.mustChangePassword = true;
-
         writeStore(STORAGE.users, users);
         audit(current.userId, "PASSWORD_RESET", user.userId);
-
-        return {
-          success: true,
-          temporaryPassword
-        };
+        return { success: true, temporaryPassword };
       }
     };
 
     async function server(name, ...args) {
-      if (typeof LocalApi[name] !== "function") {
-        throw new Error("지원하지 않는 기능입니다.");
-      }
-
+      if (typeof LocalApi[name] !== "function") throw new Error("지원하지 않는 기능입니다.");
       return LocalApi[name](...args);
     }
 
@@ -1228,145 +860,72 @@
     function showLogin(message = "") {
       $("appView").classList.add("hidden");
       $("loginView").classList.remove("hidden");
-
       $("loginError").textContent = message;
       $("loginError").classList.toggle("hidden", !message);
-
-      $("firstRunPanel").classList.toggle(
-        "hidden",
-        LocalApi.hasUsers()
-      );
+      $("firstRunPanel").classList.toggle("hidden", LocalApi.hasUsers());
     }
 
     function handleError(error) {
-      const message =
-        error?.message ||
-        "알 수 없는 오류가 발생했습니다.";
-
+      const message = error?.message || "알 수 없는 오류가 발생했습니다.";
       if (message.includes("세션이 만료")) {
         sessionStorage.removeItem("budgetToken");
         state.token = "";
         showLogin(message);
         return;
       }
-
       dialog("처리할 수 없습니다", message);
     }
 
     $("passwordToggle").addEventListener("click", () => {
       const input = $("loginPassword");
-
-      input.type =
-        input.type === "password"
-          ? "text"
-          : "password";
-
-      $("passwordToggle").textContent =
-        input.type === "password"
-          ? "보기"
-          : "숨김";
+      input.type = input.type === "password" ? "text" : "password";
+      $("passwordToggle").textContent = input.type === "password" ? "보기" : "숨김";
     });
 
     $("setupButton").addEventListener("click", async () => {
       busy(true, "관리자 계정을 만드는 중...");
-
       try {
-        await LocalApi.createInitialAdmin(
-          $("setupName").value,
-          $("setupPassword").value
-        );
-
+        await LocalApi.createInitialAdmin($("setupName").value, $("setupPassword").value);
         $("loginId").value = "admin";
         $("setupPassword").value = "";
-
         showLogin();
-
-        dialog(
-          "설정 완료",
-          "관리자 아이디는 admin입니다.\n방금 설정한 비밀번호로 로그인하세요."
-        );
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+        dialog("설정 완료", "관리자 아이디는 admin입니다.\n방금 설정한 비밀번호로 로그인하세요.");
+      } catch (error) { handleError(error); } finally { busy(false); }
     });
 
     $("loginForm").addEventListener("submit", async event => {
       event.preventDefault();
-
       busy(true, "로그인 중...");
       $("loginError").classList.add("hidden");
-
       try {
-        const result = await server(
-          "login",
-          $("loginId").value,
-          $("loginPassword").value
-        );
-
+        const result = await server("login", $("loginId").value, $("loginPassword").value);
         state.token = result.token;
-        sessionStorage.setItem(
-          "budgetToken",
-          state.token
-        );
-
+        sessionStorage.setItem("budgetToken", state.token);
         $("loginPassword").value = "";
-
         await loadApp();
-      } catch (error) {
-        showLogin(error.message);
-      } finally {
-        busy(false);
-      }
+      } catch (error) { showLogin(error.message); } finally { busy(false); }
     });
 
     async function loadApp() {
-      const data = await server(
-        "getAppData",
-        state.token
-      );
-
+      const data = await server("getAppData", state.token);
       Object.assign(state, data);
-
       $("loginView").classList.add("hidden");
       $("appView").classList.remove("hidden");
-
       $("userName").textContent = state.user.name;
-      $("userRole").textContent =
-        state.user.role === "admin"
-          ? "관리자"
-          : "일반 사용자";
-
+      $("userRole").textContent = state.user.role === "admin" ? "관리자" : "일반 사용자";
+      
       const isAdmin = state.user.role === "admin";
-
-      $("usersTabButton").classList.toggle(
-        "hidden",
-        !isAdmin
-      );
-
-      $("clearAllButton").classList.toggle(
-        "hidden",
-        !isAdmin
-      );
-
-      $("backupButton").classList.toggle(
-        "hidden",
-        !isAdmin
-      );
-
-      $("restoreLabel").classList.toggle(
-        "hidden",
-        !isAdmin
-      );
-
+      $("usersTabButton").classList.toggle("hidden", !isAdmin);
+      $("clearAllButton").classList.toggle("hidden", !isAdmin);
+      $("backupButton").classList.toggle("hidden", !isAdmin);
+      $("restoreLabel").classList.toggle("hidden", !isAdmin);
+      
       fillSelects();
       renderAll();
-
+      
       if (state.user.mustChangePassword) {
         $("currentPassword").value = "";
         $("newPassword").value = "";
-
         $("passwordModal").classList.remove("hidden");
         $("passwordModal").classList.add("flex");
       }
@@ -1374,92 +933,53 @@
 
     async function refreshData() {
       busy(true, "데이터를 새로고침하는 중...");
-
-      try {
-        await loadApp();
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+      try { await loadApp(); } catch (error) { handleError(error); } finally { busy(false); }
     }
 
     async function logoutApp() {
-      try {
-        if (state.token) {
-          await server("logout", state.token);
-        }
-      } finally {
-        sessionStorage.removeItem("budgetToken");
-        state.token = "";
-        showLogin();
-      }
+      try { if (state.token) await server("logout", state.token); } 
+      finally { sessionStorage.removeItem("budgetToken"); state.token = ""; showLogin(); }
     }
 
     function fillSelects() {
       const member = $("memberId");
-
       member.replaceChildren();
-
       state.members.forEach(user => {
         const option = document.createElement("option");
-
         option.value = user.userId;
-        option.textContent =
-          `${user.name} (${user.userId})`;
-
+        option.textContent = `${user.name} (${user.userId})`;
         member.appendChild(option);
       });
-
       member.value = state.user.userId;
       member.disabled = state.user.role !== "admin";
 
       $("category").replaceChildren();
       $("filterCategory").replaceChildren();
-
       const allOption = document.createElement("option");
       allOption.value = "";
       allOption.textContent = "전체 항목";
       $("filterCategory").appendChild(allOption);
-
+      
       state.categories.forEach(category => {
-        const inputOption =
-          document.createElement("option");
-
+        const inputOption = document.createElement("option");
         inputOption.value = category;
         inputOption.textContent = category;
-
-        const filterOption =
-          document.createElement("option");
-
+        const filterOption = document.createElement("option");
         filterOption.value = category;
         filterOption.textContent = category;
-
         $("category").appendChild(inputOption);
         $("filterCategory").appendChild(filterOption);
       });
-
-      $("month").value =
-        new Date().toISOString().slice(0, 7);
+      $("month").value = new Date().toISOString().slice(0, 7);
     }
 
     function filteredEntries() {
-      const query =
-        $("searchInput").value.trim().toLowerCase();
-
+      const query = $("searchInput").value.trim().toLowerCase();
       const month = $("filterMonth").value;
       const category = $("filterCategory").value;
-
       return state.entries.filter(entry => {
-        const searchText =
-          `${entry.memberName} ${entry.memo || ""}`
-            .toLowerCase();
-
-        return (
-          (!query || searchText.includes(query)) &&
-          (!month || entry.month === month) &&
-          (!category || entry.category === category)
-        );
+        const searchText = `${entry.memberName} ${entry.memo || ""}`.toLowerCase();
+        return (!query || searchText.includes(query)) && (!month || entry.month === month) && (!category || entry.category === category);
       });
     }
 
@@ -1472,168 +992,77 @@
     function renderHistory() {
       const entries = filteredEntries();
       const body = $("historyBody");
-
       body.replaceChildren();
-
-      $("resultCount").textContent =
-        `${entries.length.toLocaleString()}건 표시`;
-
+      $("resultCount").textContent = `${entries.length.toLocaleString()}건 표시`;
+      
       if (!entries.length) {
         const row = body.insertRow();
         const cell = row.insertCell();
-
         cell.colSpan = 6;
-        cell.className =
-          "p-10 text-center text-gray-400";
-        cell.textContent =
-          "조건에 맞는 내역이 없습니다.";
-
+        cell.className = "p-10 text-center text-gray-400";
+        cell.textContent = "조건에 맞는 내역이 없습니다.";
         return;
       }
-
+      
       entries.forEach(item => {
         const row = body.insertRow();
-
-        row.className =
-          "border-t hover:bg-slate-50";
-
-        [
-          item.month,
-          item.memberName,
-          item.category,
-          item.memo || "-"
-        ].forEach(value => {
+        row.className = "border-t hover:bg-slate-50";
+        [item.month, item.memberName, item.category, item.memo || "-"].forEach(value => {
           const cell = row.insertCell();
-
-          cell.className =
-            "p-3 whitespace-nowrap";
+          cell.className = "p-3 whitespace-nowrap";
           cell.textContent = value;
         });
-
         const amountCell = row.insertCell();
-
-        amountCell.className =
-          "p-3 text-right font-bold whitespace-nowrap";
+        amountCell.className = "p-3 text-right font-bold whitespace-nowrap";
         amountCell.textContent = money(item.amount);
-
+        
         const actionCell = row.insertCell();
         actionCell.className = "p-3 text-right";
-
-        const button =
-          document.createElement("button");
-
+        const button = document.createElement("button");
         button.type = "button";
-        button.className =
-          "text-red-600 hover:underline";
+        button.className = "text-red-600 hover:underline";
         button.textContent = "삭제";
         button.onclick = () => removeEntry(item.id);
-
         actionCell.appendChild(button);
       });
     }
 
-    $("entryForm").addEventListener(
-      "submit",
-      async event => {
-        event.preventDefault();
-
-        const button = $("saveButton");
-
-        button.disabled = true;
-        busy(true, "예산 내역을 저장하는 중...");
-
-        try {
-          await server("addEntry", state.token, {
-            memberId: $("memberId").value,
-            month: $("month").value,
-            category: $("category").value,
-            amount: Number($("amount").value),
-            memo: $("memo").value
-          });
-
-          $("amount").value = "";
-          $("memo").value = "";
-
-          await loadApp();
-
-          dialog(
-            "저장 완료",
-            "예산 내역이 저장되었습니다."
-          );
-        } catch (error) {
-          handleError(error);
-        } finally {
-          button.disabled = false;
-          busy(false);
-        }
-      }
-    );
+    $("entryForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = $("saveButton");
+      button.disabled = true;
+      busy(true, "예산 내역을 저장하는 중...");
+      try {
+        await server("addEntry", state.token, { memberId: $("memberId").value, month: $("month").value, category: $("category").value, amount: Number($("amount").value), memo: $("memo").value });
+        $("amount").value = "";
+        $("memo").value = "";
+        await loadApp();
+        dialog("저장 완료", "예산 내역이 저장되었습니다.");
+      } catch (error) { handleError(error); } finally { button.disabled = false; busy(false); }
+    });
 
     async function removeEntry(id) {
-      if (!confirm("이 내역을 삭제하시겠습니까?")) {
-        return;
-      }
-
+      if (!confirm("이 내역을 삭제하시겠습니까?")) return;
       busy(true, "삭제 중...");
-
-      try {
-        await server(
-          "deleteEntry",
-          state.token,
-          id
-        );
-
-        await loadApp();
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+      try { await server("deleteEntry", state.token, id); await loadApp(); } catch (error) { handleError(error); } finally { busy(false); }
     }
 
     async function confirmClearAll() {
-      const text = prompt(
-        "모든 예산 내역을 삭제하려면 “전체삭제”를 입력하세요."
-      );
-
-      if (text !== "전체삭제") {
-        return;
-      }
-
+      const text = prompt("모든 예산 내역을 삭제하려면 “전체삭제”를 입력하세요.");
+      if (text !== "전체삭제") return;
       busy(true, "전체 내역을 삭제하는 중...");
-
       try {
-        const result = await server(
-          "clearAllEntries",
-          state.token,
-          text
-        );
-
+        const result = await server("clearAllEntries", state.token, text);
         await loadApp();
-
-        dialog(
-          "삭제 완료",
-          `${result.deletedCount}건을 삭제했습니다.`
-        );
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+        dialog("삭제 완료", `${result.deletedCount}건을 삭제했습니다.`);
+      } catch (error) { handleError(error); } finally { busy(false); }
     }
 
-    [
-      "searchInput",
-      "filterMonth",
-      "filterCategory"
-    ].forEach(id => {
-      $(id).addEventListener(
-        id === "searchInput" ? "input" : "change",
-        () => {
-          renderHistory();
-          renderDashboard();
-        }
-      );
+    ["searchInput", "filterMonth", "filterCategory"].forEach(id => {
+      $(id).addEventListener(id === "searchInput" ? "input" : "change", () => {
+        renderHistory();
+        renderDashboard();
+      });
     });
 
     document.querySelectorAll(".tab").forEach(button => {
@@ -1642,617 +1071,287 @@
           tab.classList.remove("tab-active");
           tab.classList.add("bg-white", "border");
         });
-
         button.classList.add("tab-active");
         button.classList.remove("bg-white", "border");
-
-        document
-          .querySelectorAll(".tab-panel")
-          .forEach(panel =>
-            panel.classList.add("hidden")
-          );
-
-        $(`tab-${button.dataset.tab}`)
-          .classList.remove("hidden");
-
-        if (button.dataset.tab === "dashboard") {
-          renderDashboard();
-        }
+        document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.add("hidden"));
+        $(`tab-${button.dataset.tab}`).classList.remove("hidden");
+        if (button.dataset.tab === "dashboard") { renderDashboard(); }
       });
     });
 
     function renderDashboard() {
       const entries = filteredEntries();
-
-      const total = entries.reduce(
-        (sum, entry) =>
-          sum + Number(entry.amount),
-        0
-      );
-
+      const total = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
       const categoryMap = {};
       const monthlyMap = {};
 
       entries.forEach(entry => {
-        categoryMap[entry.category] =
-          (categoryMap[entry.category] || 0) +
-          Number(entry.amount);
-
-        monthlyMap[entry.month] =
-          (monthlyMap[entry.month] || 0) +
-          Number(entry.amount);
+        categoryMap[entry.category] = (categoryMap[entry.category] || 0) + Number(entry.amount);
+        monthlyMap[entry.month] = (monthlyMap[entry.month] || 0) + Number(entry.amount);
       });
 
-      const topCategory =
-        Object.keys(categoryMap).sort(
-          (a, b) =>
-            categoryMap[b] - categoryMap[a]
-        )[0];
-
+      const topCategory = Object.keys(categoryMap).sort((a, b) => categoryMap[b] - categoryMap[a])[0];
+      
       $("statTotal").textContent = money(total);
+      $("statTop").textContent = topCategory ? `${topCategory} · ${money(categoryMap[topCategory])}` : "-";
+      $("statCount").textContent = `${entries.length}건`;
 
-      $("statTop").textContent = topCategory
-        ? `${topCategory} · ${money(
-            categoryMap[topCategory]
-          )}`
-        : "-";
-
-      $("statCount").textContent =
-        `${entries.length}건`;
+      // AI 요약 화면 초기화 (탭 전환 또는 필터 변경 시)
+      const aiResultDiv = $("ai-summary-result");
+      const aiBtn = $("btn-ai-summary");
+      aiResultDiv.classList.add("hidden");
+      aiBtn.innerHTML = "✨ AI 요약 분석하기";
+      aiBtn.disabled = false;
 
       state.charts.forEach(chart => chart.destroy());
       state.charts = [];
 
-      state.charts.push(
-        new Chart($("categoryChart"), {
-          type: "doughnut",
-          data: {
-            labels: Object.keys(categoryMap),
-            datasets: [{
-              data: Object.values(categoryMap),
-              backgroundColor: [
-                "#2563eb",
-                "#10b981",
-                "#8b5cf6"
-              ],
-              borderWidth: 0
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "66%"
-          }
-        })
-      );
+      state.charts.push(new Chart($("categoryChart"), {
+        type: "doughnut",
+        data: { labels: Object.keys(categoryMap), datasets: [{ data: Object.values(categoryMap), backgroundColor: ["#2563eb", "#10b981", "#8b5cf6"], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "66%" }
+      }));
 
-      const months =
-        Object.keys(monthlyMap).sort();
-
-      state.charts.push(
-        new Chart($("monthlyChart"), {
-          type: "line",
-          data: {
-            labels: months,
-            datasets: [{
-              label: "사용 금액",
-              data: months.map(
-                month => monthlyMap[month]
-              ),
-              borderColor: "#2563eb",
-              backgroundColor:
-                "rgba(37,99,235,.12)",
-              fill: true,
-              tension: .3
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true
-              }
-            }
-          }
-        })
-      );
+      const months = Object.keys(monthlyMap).sort();
+      state.charts.push(new Chart($("monthlyChart"), {
+        type: "line",
+        data: { labels: months, datasets: [{ label: "사용 금액", data: months.map(month => monthlyMap[month]), borderColor: "#2563eb", backgroundColor: "rgba(37,99,235,.12)", fill: true, tension: .3 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+      }));
 
       renderSummary(entries);
     }
 
     function renderSummary(entries) {
       const summary = {};
-
       entries.forEach(entry => {
-        if (!summary[entry.month]) {
-          summary[entry.month] = {
-            수선유지비: 0,
-            비품: 0,
-            개량공사: 0
-          };
-        }
-
-        summary[entry.month][entry.category] +=
-          Number(entry.amount);
+        if (!summary[entry.month]) { summary[entry.month] = { 수선유지비: 0, 비품: 0, 개량공사: 0 }; }
+        summary[entry.month][entry.category] += Number(entry.amount);
       });
 
       const body = $("summaryBody");
       body.replaceChildren();
 
-      Object.keys(summary)
-        .sort()
-        .reverse()
-        .forEach(month => {
-          const row = body.insertRow();
-
-          row.className = "border-t";
-
-          const total = CATEGORIES.reduce(
-            (sum, category) =>
-              sum + summary[month][category],
-            0
-          );
-
-          const values = [
-            month,
-            ...CATEGORIES.map(
-              category => summary[month][category]
-            ),
-            total
-          ];
-
-          values.forEach((value, index) => {
-            const cell = row.insertCell();
-
-            cell.className =
-              "p-3 " +
-              (index ? "text-right" : "text-left");
-
-            cell.textContent =
-              index ? money(value) : value;
-          });
+      Object.keys(summary).sort().reverse().forEach(month => {
+        const row = body.insertRow();
+        row.className = "border-t";
+        const total = CATEGORIES.reduce((sum, category) => sum + summary[month][category], 0);
+        const values = [month, ...CATEGORIES.map(category => summary[month][category]), total];
+        
+        values.forEach((value, index) => {
+          const cell = row.insertCell();
+          cell.className = "p-3 " + (index ? "text-right" : "text-left");
+          cell.textContent = index ? money(value) : value;
         });
+      });
     }
 
+    // ==========================================
+    // 🤖 AI 스마트 요약 생성 로직
+    // ==========================================
+    function runAiSummary() {
+      const btn = $("btn-ai-summary");
+      const resultDiv = $("ai-summary-result");
+      
+      // 현재 필터링된(조회된) 데이터를 가져옵니다.
+      const entries = filteredEntries(); 
+
+      if (entries.length === 0) {
+        resultDiv.classList.remove("hidden");
+        resultDiv.innerHTML = '<p class="text-gray-500 font-medium">분석할 데이터가 없습니다. 먼저 내역을 입력하거나 검색 조건을 변경해 보세요.</p>';
+        return;
+      }
+
+      // 로딩 상태 표시
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-small mr-2"></span> 분석 중...';
+      
+      resultDiv.classList.remove("hidden");
+      resultDiv.innerHTML = '<p class="text-blue-600 font-bold animate-pulse">AI가 데이터를 분석하고 인사이트를 도출하고 있습니다...</p>';
+
+      // AI가 분석하는 느낌을 주기 위한 1.2초 딜레이
+      setTimeout(() => {
+        let totalAmount = 0;
+        const userTotals = {};
+        const categoryTotals = {};
+
+        // 데이터 집계
+        entries.forEach(entry => {
+          totalAmount += entry.amount;
+          userTotals[entry.memberName] = (userTotals[entry.memberName] || 0) + entry.amount;
+          categoryTotals[entry.category] = (categoryTotals[entry.category] || 0) + entry.amount;
+        });
+
+        // 최고 지출자 및 카테고리 추출
+        const topUserArr = Object.entries(userTotals).sort((a, b) => b[1] - a[1])[0];
+        const topCategoryArr = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+
+        const topUserName = topUserArr[0];
+        const topUserAmount = topUserArr[1];
+        const userPercentage = ((topUserAmount / totalAmount) * 100).toFixed(1);
+
+        const topCategoryName = topCategoryArr[0];
+        const topCategoryAmount = topCategoryArr[1];
+        const categoryPercentage = ((topCategoryAmount / totalAmount) * 100).toFixed(1);
+
+        // 결과 HTML 구성 (Tailwind 클래스 활용)
+        const resultHtml = `
+          <h4 class="font-extrabold text-lg mb-3 text-slate-800 border-b pb-2">📊 AI 분석 리포트 완료</h4>
+          <ul class="space-y-2 text-slate-700 mb-5">
+            <li>✅ 현재 조회된 내역을 기준으로 <strong>총 ${entries.length}건, ${money(totalAmount)}</strong>의 예산이 사용되었습니다.</li>
+            <li>🏆 가장 많은 예산을 사용한 팀원은 <strong>${topUserName}님 (${money(topUserAmount)})</strong>입니다. 이는 전체 지출의 <strong>약 ${userPercentage}%</strong>에 달합니다.</li>
+            <li>💰 항목별로는 <strong>'${topCategoryName}'</strong> 명목으로 가장 많은 금액<strong>(${money(topCategoryAmount)})</strong>이 지출되었으며, 전체의 <strong>${categoryPercentage}%</strong>를 차지합니다.</li>
+          </ul>
+          <div class="bg-indigo-50 p-4 rounded-lg text-indigo-900 text-sm flex gap-3">
+            <span class="text-xl">💡</span>
+            <div>
+              <strong class="block mb-1">AI 인사이트:</strong> 
+              ${topUserName}님의 지출 비중이 가장 높으며, 주요 지출 원인은 ${topCategoryName}입니다. 
+              해당 예산 사용이 계획된 범위 내에서 적절히 이루어졌는지 확인해 보시는 것을 권장합니다!
+            </div>
+          </div>
+        `;
+
+        resultDiv.innerHTML = resultHtml;
+        btn.disabled = false;
+        btn.innerHTML = '🔄 다시 요약하기';
+      }, 1200);
+    }
+    // ==========================================
+
     function exportCsv() {
-      const rows = [
-        ["연월", "팀원", "항목", "메모", "금액"],
-        ...filteredEntries().map(entry => [
-          entry.month,
-          entry.memberName,
-          entry.category,
-          entry.memo,
-          entry.amount
-        ])
-      ];
-
-      const escapeCsv = value =>
-        `"${String(value ?? "").replace(
-          /"/g,
-          '""'
-        )}"`;
-
-      const csv =
-        "\uFEFF" +
-        rows
-          .map(row =>
-            row.map(escapeCsv).join(",")
-          )
-          .join("\r\n");
-
-      const url = URL.createObjectURL(
-        new Blob([csv], {
-          type: "text/csv;charset=utf-8"
-        })
-      );
-
+      const rows = [ ["연월", "팀원", "항목", "메모", "금액"], ...filteredEntries().map(entry => [ entry.month, entry.memberName, entry.category, entry.memo, entry.amount ]) ];
+      const escapeCsv = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      const csv = "\uFEFF" + rows.map(row => row.map(escapeCsv).join(",")).join("\r\n");
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       const link = document.createElement("a");
-
       link.href = url;
-      link.download =
-        `팀예산_${new Date()
-          .toISOString()
-          .slice(0, 10)}.csv`;
-
+      link.download = `팀예산_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     }
 
     function exportBackup() {
-      const backup = {
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        users: readStore(STORAGE.users),
-        entries: readStore(STORAGE.entries),
-        audit: readStore(STORAGE.audit)
-      };
-
-      const url = URL.createObjectURL(
-        new Blob(
-          [JSON.stringify(backup, null, 2)],
-          { type: "application/json" }
-        )
-      );
-
+      const backup = { version: 1, exportedAt: new Date().toISOString(), users: readStore(STORAGE.users), entries: readStore(STORAGE.entries), audit: readStore(STORAGE.audit) };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
       const link = document.createElement("a");
-
       link.href = url;
-      link.download =
-        `팀예산_백업_${new Date()
-          .toISOString()
-          .slice(0, 10)}.json`;
-
+      link.download = `팀예산_백업_${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
     }
 
-    $("restoreInput").addEventListener(
-      "change",
-      async event => {
-        const file = event.target.files[0];
-
-        if (!file) {
-          return;
-        }
-
-        if (
-          !confirm(
-            "현재 데이터를 백업 파일 내용으로 교체하시겠습니까?"
-          )
-        ) {
-          event.target.value = "";
-          return;
-        }
-
-        try {
-          const backup = JSON.parse(
-            await file.text()
-          );
-
-          if (
-            backup.version !== 1 ||
-            !Array.isArray(backup.users) ||
-            !Array.isArray(backup.entries)
-          ) {
-            throw new Error(
-              "지원하지 않는 백업 파일입니다."
-            );
-          }
-
-          writeStore(
-            STORAGE.users,
-            backup.users
-          );
-
-          writeStore(
-            STORAGE.entries,
-            backup.entries
-          );
-
-          writeStore(
-            STORAGE.audit,
-            Array.isArray(backup.audit)
-              ? backup.audit
-              : []
-          );
-
-          await loadApp();
-
-          dialog(
-            "복원 완료",
-            "백업 데이터를 불러왔습니다."
-          );
-        } catch (error) {
-          handleError(error);
-        } finally {
-          event.target.value = "";
-        }
-      }
-    );
+    $("restoreInput").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!confirm("현재 데이터를 백업 파일 내용으로 교체하시겠습니까?")) { event.target.value = ""; return; }
+      try {
+        const backup = JSON.parse(await file.text());
+        if (backup.version !== 1 || !Array.isArray(backup.users) || !Array.isArray(backup.entries)) throw new Error("지원하지 않는 백업 파일입니다.");
+        writeStore(STORAGE.users, backup.users);
+        writeStore(STORAGE.entries, backup.entries);
+        writeStore(STORAGE.audit, Array.isArray(backup.audit) ? backup.audit : []);
+        await loadApp();
+        dialog("복원 완료", "백업 데이터를 불러왔습니다.");
+      } catch (error) { handleError(error); } finally { event.target.value = ""; }
+    });
 
     function renderUsers() {
-      if (state.user?.role !== "admin") {
-        return;
-      }
-
+      if (state.user?.role !== "admin") return;
       const list = $("userList");
       list.replaceChildren();
-
       state.users.forEach(user => {
-        const card =
-          document.createElement("div");
-
-        card.className =
-          "border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3";
-
-        const info =
-          document.createElement("div");
-
-        const title =
-          document.createElement("p");
-
+        const card = document.createElement("div");
+        card.className = "border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3";
+        const info = document.createElement("div");
+        const title = document.createElement("p");
         title.className = "font-bold";
-        title.textContent =
-          `${user.name} · ${user.userId}`;
-
-        const description =
-          document.createElement("p");
-
-        description.className =
-          "text-sm text-gray-500";
-
-        description.textContent =
-          `${user.role === "admin"
-            ? "관리자"
-            : "일반 사용자"} / ${
-            user.active
-              ? "활성"
-              : "비활성"
-          }`;
-
+        title.textContent = `${user.name} · ${user.userId}`;
+        const description = document.createElement("p");
+        description.className = "text-sm text-gray-500";
+        description.textContent = `${user.role === "admin" ? "관리자" : "일반 사용자"} / ${user.active ? "활성" : "비활성"}`;
         info.append(title, description);
-
-        const actions =
-          document.createElement("div");
-
-        actions.className =
-          "flex flex-wrap gap-2";
-
-        const editButton =
-          document.createElement("button");
-
-        editButton.type = "button";
-        editButton.className =
-          "btn border text-sm";
-        editButton.textContent = "팀원 편집";
-        editButton.onclick =
-          () => editUser(user);
-
-        const resetButton =
-          document.createElement("button");
-
-        resetButton.type = "button";
-        resetButton.className =
-          "btn border text-sm";
-        resetButton.textContent =
-          "비밀번호 초기화";
-        resetButton.onclick =
-          () => resetPassword(user.userId);
-
-        const toggleButton =
-          document.createElement("button");
-
-        toggleButton.type = "button";
-        toggleButton.className =
-          "btn border text-sm";
-
-        toggleButton.textContent =
-          user.active
-            ? "비활성화"
-            : "활성화";
-
-        toggleButton.onclick =
-          () => toggleUser(user);
-
-        actions.append(
-          editButton,
-          resetButton,
-          toggleButton
-        );
-
+        
+        const actions = document.createElement("div");
+        actions.className = "flex flex-wrap gap-2";
+        const editButton = document.createElement("button");
+        editButton.type = "button"; editButton.className = "btn border text-sm"; editButton.textContent = "팀원 편집"; editButton.onclick = () => editUser(user);
+        const resetButton = document.createElement("button");
+        resetButton.type = "button"; resetButton.className = "btn border text-sm"; resetButton.textContent = "비밀번호 초기화"; resetButton.onclick = () => resetPassword(user.userId);
+        const toggleButton = document.createElement("button");
+        toggleButton.type = "button"; toggleButton.className = "btn border text-sm"; toggleButton.textContent = user.active ? "비활성화" : "활성화"; toggleButton.onclick = () => toggleUser(user);
+        
+        actions.append(editButton, resetButton, toggleButton);
         card.append(info, actions);
         list.appendChild(card);
       });
     }
 
-    $("userForm").addEventListener(
-      "submit",
-      async event => {
-        event.preventDefault();
-
-        busy(true, "팀원을 추가하는 중...");
-
-        try {
-          const result = await server(
-            "createUser",
-            state.token,
-            {
-              userId: $("newUserId").value,
-              name: $("newUserName").value,
-              role: $("newUserRole").value
-            }
-          );
-
-          event.target.reset();
-
-          await loadApp();
-
-          dialog(
-            "팀원 생성 완료",
-            `아이디: ${result.userId}\n` +
-            `임시 비밀번호: ${result.temporaryPassword}\n\n` +
-            "이 비밀번호는 다시 표시되지 않습니다."
-          );
-        } catch (error) {
-          handleError(error);
-        } finally {
-          busy(false);
-        }
-      }
-    );
+    $("userForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      busy(true, "팀원을 추가하는 중...");
+      try {
+        const result = await server("createUser", state.token, { userId: $("newUserId").value, name: $("newUserName").value, role: $("newUserRole").value });
+        event.target.reset();
+        await loadApp();
+        dialog("팀원 생성 완료", `아이디: ${result.userId}\n임시 비밀번호: ${result.temporaryPassword}\n\n이 비밀번호는 다시 표시되지 않습니다.`);
+      } catch (error) { handleError(error); } finally { busy(false); }
+    });
 
     async function editUser(user) {
-      const name = prompt(
-        "수정할 팀원 이름을 입력하세요.",
-        user.name
-      );
-
-      if (name === null) {
-        return;
-      }
-
-      const role = prompt(
-        "권한을 입력하세요. (admin 또는 user)",
-        user.role
-      );
-
-      if (role === null) {
-        return;
-      }
-
-      if (!["admin", "user"].includes(role)) {
-        dialog(
-          "입력 확인",
-          "권한은 admin 또는 user로 입력해 주세요."
-        );
-
-        return;
-      }
-
+      const name = prompt("수정할 팀원 이름을 입력하세요.", user.name);
+      if (name === null) return;
+      const role = prompt("권한을 입력하세요. (admin 또는 user)", user.role);
+      if (role === null) return;
+      if (!["admin", "user"].includes(role)) { dialog("입력 확인", "권한은 admin 또는 user로 입력해 주세요."); return; }
+      
       busy(true, "팀원 정보를 수정하는 중...");
-
       try {
-        await server(
-          "updateUser",
-          state.token,
-          {
-            userId: user.userId,
-            name,
-            role
-          }
-        );
-
+        await server("updateUser", state.token, { userId: user.userId, name, role });
         await loadApp();
-
-        dialog(
-          "수정 완료",
-          "팀원 정보와 기존 예산 내역의 표시 이름을 갱신했습니다."
-        );
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+        dialog("수정 완료", "팀원 정보와 기존 예산 내역의 표시 이름을 갱신했습니다.");
+      } catch (error) { handleError(error); } finally { busy(false); }
     }
 
     async function resetPassword(userId) {
-      if (
-        !confirm(
-          `${userId}의 비밀번호를 초기화하시겠습니까?`
-        )
-      ) {
-        return;
-      }
-
+      if (!confirm(`${userId}의 비밀번호를 초기화하시겠습니까?`)) return;
       busy(true, "비밀번호를 초기화하는 중...");
-
       try {
-        const result = await server(
-          "resetUserPassword",
-          state.token,
-          userId
-        );
-
-        dialog(
-          "임시 비밀번호 발급",
-          `${result.temporaryPassword}\n\n` +
-          "사용자에게 안전한 방법으로 전달하세요."
-        );
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+        const result = await server("resetUserPassword", state.token, userId);
+        dialog("임시 비밀번호 발급", `${result.temporaryPassword}\n\n사용자에게 안전한 방법으로 전달하세요.`);
+      } catch (error) { handleError(error); } finally { busy(false); }
     }
 
     async function toggleUser(user) {
-      const action =
-        user.active
-          ? "비활성화"
-          : "활성화";
-
-      if (
-        !confirm(
-          `${user.userId} 계정을 ${action}하시겠습니까?`
-        )
-      ) {
-        return;
-      }
-
+      const action = user.active ? "비활성화" : "활성화";
+      if (!confirm(`${user.userId} 계정을 ${action}하시겠습니까?`)) return;
       busy(true, "계정 상태를 변경하는 중...");
-
       try {
-        await server(
-          "setUserActive",
-          state.token,
-          user.userId,
-          !user.active
-        );
-
+        await server("setUserActive", state.token, user.userId, !user.active);
         await loadApp();
-      } catch (error) {
-        handleError(error);
-      } finally {
-        busy(false);
-      }
+      } catch (error) { handleError(error); } finally { busy(false); }
     }
 
-    $("passwordForm").addEventListener(
-      "submit",
-      async event => {
-        event.preventDefault();
-
-        busy(true, "비밀번호를 변경하는 중...");
-
-        try {
-          await server(
-            "changePassword",
-            state.token,
-            $("currentPassword").value,
-            $("newPassword").value
-          );
-
-          $("passwordModal")
-            .classList.add("hidden");
-
-          $("passwordModal")
-            .classList.remove("flex");
-
-          await loadApp();
-
-          dialog(
-            "변경 완료",
-            "새 비밀번호가 적용되었습니다."
-          );
-        } catch (error) {
-          handleError(error);
-        } finally {
-          busy(false);
-        }
-      }
-    );
+    $("passwordForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      busy(true, "비밀번호를 변경하는 중...");
+      try {
+        await server("changePassword", state.token, $("currentPassword").value, $("newPassword").value);
+        $("passwordModal").classList.add("hidden");
+        $("passwordModal").classList.remove("flex");
+        await loadApp();
+        dialog("변경 완료", "새 비밀번호가 적용되었습니다.");
+      } catch (error) { handleError(error); } finally { busy(false); }
+    });
 
     window.addEventListener("load", async () => {
-      if (!state.token) {
-        showLogin();
-        return;
-      }
-
+      if (!state.token) { showLogin(); return; }
       busy(true, "세션을 확인하는 중...");
-
-      try {
-        await loadApp();
-      } catch {
+      try { await loadApp(); } catch {
         sessionStorage.removeItem("budgetToken");
         state.token = "";
-
-        showLogin(
-          "세션이 만료되었습니다. 다시 로그인해 주세요."
-        );
-      } finally {
-        busy(false);
-      }
+        showLogin("세션이 만료되었습니다. 다시 로그인해 주세요.");
+      } finally { busy(false); }
     });
   </script>
 </body>
